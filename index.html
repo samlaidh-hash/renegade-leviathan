@@ -5442,7 +5442,9 @@
             }
         }
 
-        // UPDATE #4: Mouse hover tooltips with error handling
+        // UPDATE #4: Mouse hover tooltips - attach after canvas is set (load handler)
+        function attachCanvasListeners() {
+            if (!canvas) return;
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left - canvas.width/2) / gameState.camera.zoom - gameState.camera.x;
@@ -5563,6 +5565,7 @@
             gameState.camera.zoom = Math.max(0.3, Math.min(2.0, gameState.camera.zoom + delta));
             render();
         });
+        }
 
         // Animation loop
         function animate() {
@@ -11073,6 +11076,7 @@
                 }
                 initGame();
                 startNewBattle();
+                if (typeof attachCanvasListeners === 'function') attachCanvasListeners();
                 animate();
                 // Expose handlers for inline onclick (required on GitHub Pages / strict globals)
                 window.loadScenario = typeof loadScenario === 'function' ? loadScenario : function(k) { alert('Load scenario: ' + k); };
