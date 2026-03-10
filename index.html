@@ -1076,56 +1076,6 @@
             POWER_BANK_RATIO: 0.1
         };
 
-        // =============================================
-        // UPDATE #10: ADVANCED MISSILE & DEFENSE SYSTEMS
-        // =============================================
-        
-        // Missile Type Definitions
-        const MISSILE_TYPES = {
-            STANDARD: {
-                name: 'Standard Missile',
-                damage: 3,
-                hitChance: 85,
-                defensiveBonus: 1.0,  // +1 to turrets when used defensively
-                cost: 2,
-                description: 'Basic ship-to-ship missile'
-            },
-            INTERCEPTOR: {
-                name: 'Interceptor Missile', 
-                damage: 1,
-                hitChance: 90,
-                defensiveBonus: 2.0,  // +2 to turrets when used defensively
-                cost: 3,
-                description: 'Specialized anti-missile missile'
-            },
-            HEAVY: {
-                name: 'Heavy Missile',
-                damage: 6,
-                hitChance: 75,
-                defensiveBonus: 0.5,  // +0.5 to turrets when used defensively
-                cost: 4,
-                description: 'High-damage assault missile'
-            },
-            PENETRATOR: {
-                name: 'Armor Penetrator',
-                damage: 4,
-                hitChance: 80,
-                defensiveBonus: 0.5,
-                cost: 5,
-                ignoresArmor: true,
-                description: 'Specialized armor-piercing missile'
-            },
-            EMP: {
-                name: 'EMP Missile',
-                damage: 1,
-                hitChance: 85,
-                defensiveBonus: 0.5,
-                cost: 4,
-                systemDamage: true,
-                description: 'Electronic warfare missile'
-            }
-        };
-        
         // Ship Missile Loadout Management
         class MissileLoadoutManager {
             constructor(ship) {
