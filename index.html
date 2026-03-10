@@ -256,10 +256,10 @@
             <!-- Game Controls -->
             <div class="section">
                 <h4>Game Controls</h4>
-                <button class="btn btn-blue" onclick="nextPhase()" style="width: 100%; margin-bottom: 0.5rem;">Next Phase</button>
-                <button class="btn btn-green" onclick="startNewBattle()" style="width: 100%; margin-bottom: 0.5rem;">New Battle</button>
-                <button class="btn btn-yellow" onclick="resetCamera()" style="width: 100%; margin-bottom: 0.5rem;">Reset Camera (C)</button>
-                <button class="btn btn-purple" onclick="showCombatRules()" style="width: 100%;">📖 Combat Rules Reference</button>
+                <button class="btn btn-blue" data-action="nextPhase" onclick="nextPhase()" style="width: 100%; margin-bottom: 0.5rem;">Next Phase</button>
+                <button class="btn btn-green" data-action="startNewBattle" onclick="startNewBattle()" style="width: 100%; margin-bottom: 0.5rem;">New Battle</button>
+                <button class="btn btn-yellow" data-action="resetCamera" onclick="resetCamera()" style="width: 100%; margin-bottom: 0.5rem;">Reset Camera (C)</button>
+                <button class="btn btn-purple" data-action="showCombatRules" onclick="showCombatRules()" style="width: 100%;">📖 Combat Rules Reference</button>
             </div>
             
             <!-- Planning Phase Interface - UPDATE #3 -->
@@ -292,28 +292,28 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #4da6ff; font-size: 0.8rem; margin-bottom: 0.25rem;">⚡ Speed Change</p>
                     <div class="button-grid-4">
-                        <button class="btn btn-red" onclick="setSpeedChange(-2)">-2</button>
-                        <button class="btn btn-red" onclick="setSpeedChange(-1)">-1</button>
-                        <button class="btn btn-green" onclick="setSpeedChange(1)">+1</button>
-                        <button class="btn btn-green" onclick="setSpeedChange(2)">+2</button>
+                        <button class="btn btn-red" data-action="setSpeedChange" data-arg="-2" onclick="setSpeedChange(-2)">-2</button>
+                        <button class="btn btn-red" data-action="setSpeedChange" data-arg="-1" onclick="setSpeedChange(-1)">-1</button>
+                        <button class="btn btn-green" data-action="setSpeedChange" data-arg="1" onclick="setSpeedChange(1)">+1</button>
+                        <button class="btn btn-green" data-action="setSpeedChange" data-arg="2" onclick="setSpeedChange(2)">+2</button>
                     </div>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #aa44ff; font-size: 0.8rem; margin-bottom: 0.25rem;">🔄 Course Change</p>
                     <div class="button-grid-4">
-                        <button class="btn btn-purple" onclick="setHeadingChange(-45)">-45°</button>
-                        <button class="btn btn-purple" onclick="setHeadingChange(-15)">-15°</button>
-                        <button class="btn btn-purple" onclick="setHeadingChange(15)">+15°</button>
-                        <button class="btn btn-purple" onclick="setHeadingChange(45)">+45°</button>
+                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="-45" onclick="setHeadingChange(-45)">-45°</button>
+                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="-15" onclick="setHeadingChange(-15)">-15°</button>
+                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="15" onclick="setHeadingChange(15)">+15°</button>
+                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="45" onclick="setHeadingChange(45)">+45°</button>
                     </div>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #ff8800; font-size: 0.8rem; margin-bottom: 0.25rem;">🔀 Special Maneuvers</p>
                     <div class="button-grid">
-                        <button class="btn btn-orange" onclick="setManeuver('flip')">Flip Ship</button>
-                        <button class="btn btn-orange" onclick="setManeuver('roll')">Roll Ship</button>
+                        <button class="btn btn-orange" data-action="setManeuver" data-arg="flip" onclick="setManeuver('flip')">Flip Ship</button>
+                        <button class="btn btn-orange" data-action="setManeuver" data-arg="roll" onclick="setManeuver('roll')">Roll Ship</button>
                     </div>
                 </div>
                 
@@ -325,8 +325,8 @@
                 
                 <!-- UPDATE #5: Order Confirmation Buttons -->
                 <div class="button-grid" style="margin-top: 0.5rem;">
-                    <button class="btn btn-green" onclick="confirmOrders()" style="width: 100%;">✓ Confirm Orders</button>
-                    <button class="btn btn-red" onclick="clearOrders()" style="width: 100%;">Clear Orders</button>
+                    <button class="btn btn-green" data-action="confirmOrders" onclick="confirmOrders()" style="width: 100%;">✓ Confirm Orders</button>
+                    <button class="btn btn-red" data-action="clearOrders" onclick="clearOrders()" style="width: 100%;">Clear Orders</button>
                 </div>
             </div>
             
@@ -680,8 +680,8 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #00ffff; font-size: 0.8rem; margin-bottom: 0.25rem;">🌟 FTL Operations</p>
                     <div class="button-grid">
-                        <button class="btn btn-cyan" onclick="executeJump()">FTL Jump</button>
-                        <button class="btn btn-cyan" onclick="calculateJump()">Plot Jump</button>
+                        <button class="btn btn-cyan" data-action="executeJump" onclick="executeJump()">FTL Jump</button>
+                        <button class="btn btn-cyan" data-action="calculateJump" onclick="calculateJump()">Plot Jump</button>
                         <button class="btn btn-green" onclick="emergencyJump()">Emergency Jump</button>
                         <button class="btn btn-yellow" onclick="interdictJump()">Jump Interdiction</button>
                     </div>
@@ -770,25 +770,25 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #ffaa00; font-size: 0.8rem; margin-bottom: 0.25rem;">⚔️ Select Mission</p>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 0.25rem;">
-                        <button class="btn btn-green" onclick="startTutorial()">Tutorial – Learn to Play</button>
-                        <button class="btn btn-blue" onclick="loadScenario('FLEET_ENGAGEMENT')">Fleet Engagement</button>
-                        <button class="btn btn-orange" onclick="loadScenario('ASTEROID_AMBUSH')">Asteroid Ambush</button>
-                        <button class="btn btn-green" onclick="loadScenario('CONVOY_ESCORT')">Convoy Escort</button>
-                        <button class="btn btn-purple" onclick="loadScenario('NEBULA_PATROL')">Nebula Patrol</button>
-                        <button class="btn btn-cyan" onclick="loadScenario('RECONNAISSANCE_RAID')">Reconnaissance Raid</button>
-                        <button class="btn btn-red" onclick="loadScenario('GRAVITATIONAL_MAELSTROM')">The Maelstrom</button>
-                        <button class="btn btn-yellow" onclick="loadScenario('EVENT_HORIZON_BATTLE')">Event Horizon</button>
+                        <button class="btn btn-green" data-action="startTutorial" onclick="startTutorial()">Tutorial – Learn to Play</button>
+                        <button class="btn btn-blue" data-action="loadScenario" data-arg="FLEET_ENGAGEMENT" onclick="loadScenario('FLEET_ENGAGEMENT')">Fleet Engagement</button>
+                        <button class="btn btn-orange" data-action="loadScenario" data-arg="ASTEROID_AMBUSH" onclick="loadScenario('ASTEROID_AMBUSH')">Asteroid Ambush</button>
+                        <button class="btn btn-green" data-action="loadScenario" data-arg="CONVOY_ESCORT" onclick="loadScenario('CONVOY_ESCORT')">Convoy Escort</button>
+                        <button class="btn btn-purple" data-action="loadScenario" data-arg="NEBULA_PATROL" onclick="loadScenario('NEBULA_PATROL')">Nebula Patrol</button>
+                        <button class="btn btn-cyan" data-action="loadScenario" data-arg="RECONNAISSANCE_RAID" onclick="loadScenario('RECONNAISSANCE_RAID')">Reconnaissance Raid</button>
+                        <button class="btn btn-red" data-action="loadScenario" data-arg="GRAVITATIONAL_MAELSTROM" onclick="loadScenario('GRAVITATIONAL_MAELSTROM')">The Maelstrom</button>
+                        <button class="btn btn-yellow" data-action="loadScenario" data-arg="EVENT_HORIZON_BATTLE" onclick="loadScenario('EVENT_HORIZON_BATTLE')">Event Horizon</button>
                     </div>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #00ff00; font-size: 0.8rem; margin-bottom: 0.25rem;">🌍 Terrain Options</p>
                     <div class="button-grid">
-                        <button class="btn btn-cyan" onclick="setTerrain('OPEN_SPACE')">Open Space</button>
-                        <button class="btn btn-red" onclick="setTerrain('ASTEROID_FIELD')">Asteroids</button>
-                        <button class="btn btn-yellow" onclick="setTerrain('DUST_STORM')">Dust Storm</button>
-                        <button class="btn btn-purple" onclick="setTerrain('NEBULA')">Nebula</button>
-                        <button class="btn btn-cyan" onclick="setTerrain('SENSOR_SHADOWS')">Sensor Shadows</button>
+                        <button class="btn btn-cyan" data-action="setTerrain" data-arg="OPEN_SPACE" onclick="setTerrain('OPEN_SPACE')">Open Space</button>
+                        <button class="btn btn-red" data-action="setTerrain" data-arg="ASTEROID_FIELD" onclick="setTerrain('ASTEROID_FIELD')">Asteroids</button>
+                        <button class="btn btn-yellow" data-action="setTerrain" data-arg="DUST_STORM" onclick="setTerrain('DUST_STORM')">Dust Storm</button>
+                        <button class="btn btn-purple" data-action="setTerrain" data-arg="NEBULA" onclick="setTerrain('NEBULA')">Nebula</button>
+                        <button class="btn btn-cyan" data-action="setTerrain" data-arg="SENSOR_SHADOWS" onclick="setTerrain('SENSOR_SHADOWS')">Sensor Shadows</button>
                     </div>
                 </div>
             </div>
@@ -802,14 +802,14 @@
                         <button class="btn btn-green" onclick="toggleAudio()">Audio ON</button>
                         <button class="btn btn-blue" onclick="toggleEffects()">Effects ON</button>
                         <button class="btn btn-yellow" onclick="adjustVolume()">Volume</button>
-                        <button class="btn btn-purple" onclick="showHelp()">Help</button>
+                        <button class="btn btn-purple" data-action="showHelp" onclick="showHelp()">Help</button>
                     </div>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
                     <div class="button-grid">
-                        <button class="btn btn-cyan" onclick="saveGame()">Save Game</button>
-                        <button class="btn btn-orange" onclick="loadGame()">Load Game</button>
+                        <button class="btn btn-cyan" data-action="saveGame" onclick="saveGame()">Save Game</button>
+                        <button class="btn btn-orange" data-action="loadGame" onclick="loadGame()">Load Game</button>
                     </div>
                 </div>
             </div>
@@ -3455,8 +3455,8 @@
             }
         };
         
-        // Pilot Grades - Individual pilot tracking system
-        const PILOT_GRADES = {
+        // Pilot Grades - Legacy (main PILOT_GRADES in fighter section)
+        const PILOT_GRADES_LEGACY = {
             GREEN: {
                 name: 'Green',
                 modifier: 0.8,
@@ -5686,8 +5686,8 @@
         };
 
         // GAME_PHASES defined once at top of script - use that definition
-        // Range band system for weapon effectiveness
-        const RANGE_BANDS = {
+        // Range band system for weapon effectiveness (simple min/max - combat uses RANGE_BANDS with calculateRangeBand)
+        const RANGE_BANDS_SIMPLE = {
             POINT_BLANK: { min: 0, max: 3, modifier: 1.3, name: 'Point Blank' },
             SHORT: { min: 3, max: 10, modifier: 1.0, name: 'Short Range' },
             MEDIUM: { min: 10, max: 20, modifier: 0.8, name: 'Medium Range' },
@@ -5697,7 +5697,7 @@
 
         // Utility function to get range band for distance
         const getRangeBand = (distance) => {
-            for (const [key, band] of Object.entries(RANGE_BANDS)) {
+            for (const [key, band] of Object.entries(RANGE_BANDS_SIMPLE)) {
                 if (distance >= band.min && distance < band.max) {
                     return { key, ...band };
                 }
@@ -5705,8 +5705,8 @@
             return { key: 'OUT_OF_RANGE', modifier: 0, name: 'Out of Range' };
         };
 
-        // Weapon types and characteristics
-        const WEAPON_TYPES = {
+        // Legacy weapon types (definitive RL:L uses WEAPON_TYPES earlier in file)
+        const WEAPON_TYPES_LEGACY = {
             LASER_LIGHT: { damage: 1, range: 25, accuracy: 0.8, name: 'Light Laser' },
             LASER_MEDIUM: { damage: 2, range: 30, accuracy: 0.75, name: 'Medium Laser' },
             LASER_HEAVY: { damage: 3, range: 35, accuracy: 0.7, name: 'Heavy Laser' },
@@ -6595,8 +6595,8 @@
             }
         }
 
-        // Terrain presets for different battlefield types
-        const TERRAIN_PRESETS = {
+        // Terrain presets (legacy - main TERRAIN_PRESETS defined later with black holes etc.)
+        const TERRAIN_PRESETS_LEGACY = {
             OPEN_SPACE: {
                 name: 'Open Space',
                 features: []
@@ -8199,7 +8199,7 @@
             }
         }
 
-        const FIGHTER_CLASSES = {
+        const FIGHTER_CLASSES_LEGACY = {
             AVENGER: {
                 name: 'Avenger Heavy Fighter',
                 type: 'FIGHTER',
@@ -11338,6 +11338,24 @@
                 window.toggleSensorMode = typeof toggleSensorMode === 'function' ? toggleSensorMode : function() {};
                 window.toggleStealth = typeof toggleStealth === 'function' ? toggleStealth : function() {};
                 window.performSensorSweep = typeof performSensorSweep === 'function' ? performSensorSweep : function() {};
+                // Fallback: delegated click for Firefox when inline onclick fails
+                var controls = document.querySelector('.controls');
+                if (controls) {
+                    controls.addEventListener('click', function(e) {
+                        var btn = e.target.closest('button[data-action]');
+                        if (!btn) return;
+                        var action = btn.getAttribute('data-action');
+                        var arg = btn.getAttribute('data-arg');
+                        var fn = window[action];
+                        if (typeof fn === 'function') {
+                            e.preventDefault();
+                            if (arg != null && arg !== '') {
+                                var n = Number(arg);
+                                fn(isNaN(n) ? arg : n);
+                            } else fn();
+                        }
+                    });
+                }
             } catch (err) {
                 console.error('Game init error:', err);
                 alert('Init error: ' + (err.message || err));
