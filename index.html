@@ -6277,7 +6277,7 @@
         // Display authentic RL:L combat rules for reference
         function showCombatRules() {
             const rulesWindow = window.open('', 'CombatRules', 'width=800,height=600,scrollbars=yes');
-            rulesWindow.document.write(`
+            const rulesHtml = `
                 <html>
                 <head>
                     <title>Renegade Legion: Leviathan - Combat Rules</title>
@@ -6396,7 +6396,8 @@
                     </div>
                 </body>
                 </html>
-            `);
+            `;
+            rulesWindow.document.write(rulesHtml);
         }
 
         // =============================================
