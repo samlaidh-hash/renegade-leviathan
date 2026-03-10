@@ -3644,7 +3644,6 @@
                 
                 return status;
             }
-        }
             
             // Create 6 individual fighters for a squadron
             createSquadronFighters(fighterType) {
@@ -3687,6 +3686,9 @@
                 if (roll < 0.98) return 'ACE';
                 return 'LEGENDARY';
             }
+        }
+        
+        class ShipEngineManager {
             constructor(ship) {
                 this.ship = ship;
                 
