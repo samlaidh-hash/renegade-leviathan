@@ -770,10 +770,14 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #ffaa00; font-size: 0.8rem; margin-bottom: 0.25rem;">⚔️ Select Mission</p>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 0.25rem;">
+                        <button class="btn btn-green" onclick="startTutorial()">Tutorial – Learn to Play</button>
                         <button class="btn btn-blue" onclick="loadScenario('FLEET_ENGAGEMENT')">Fleet Engagement</button>
                         <button class="btn btn-orange" onclick="loadScenario('ASTEROID_AMBUSH')">Asteroid Ambush</button>
                         <button class="btn btn-green" onclick="loadScenario('CONVOY_ESCORT')">Convoy Escort</button>
                         <button class="btn btn-purple" onclick="loadScenario('NEBULA_PATROL')">Nebula Patrol</button>
+                        <button class="btn btn-cyan" onclick="loadScenario('RECONNAISSANCE_RAID')">Reconnaissance Raid</button>
+                        <button class="btn btn-red" onclick="loadScenario('GRAVITATIONAL_MAELSTROM')">The Maelstrom</button>
+                        <button class="btn btn-yellow" onclick="loadScenario('EVENT_HORIZON_BATTLE')">Event Horizon</button>
                     </div>
                 </div>
                 
@@ -784,6 +788,7 @@
                         <button class="btn btn-red" onclick="setTerrain('ASTEROID_FIELD')">Asteroids</button>
                         <button class="btn btn-yellow" onclick="setTerrain('DUST_STORM')">Dust Storm</button>
                         <button class="btn btn-purple" onclick="setTerrain('NEBULA')">Nebula</button>
+                        <button class="btn btn-cyan" onclick="setTerrain('SENSOR_SHADOWS')">Sensor Shadows</button>
                     </div>
                 </div>
             </div>
@@ -839,6 +844,7 @@
             ships: [],
             selectedShip: null,
             shipOrders: new Map(),
+            fighterSquadrons: [],
             camera: { x: 0, y: 0, zoom: 1.0 },
             hoveredShip: null,
             mousePos: { x: 0, y: 0 },
@@ -846,6 +852,16 @@
             // Phase management
             phaseComplete: false,
             allOrdersConfirmed: false,
+            ftlPlotMode: false,
+            ftlDestination: null,
+
+            // Tutorial state (simple step-based guide)
+            tutorial: {
+                active: false,
+                stepIndex: 0,
+                awaitingAction: null
+            },
+            
             panelVisibility: {
                 planning: true,
                 maneuver: true,
@@ -1291,12 +1307,13 @@
                         const missile = MISSILE_TYPES[missileType];
                         if (!missile) return;
                         
-                        // Calculate conditions for missile attack
+                        // Calculate conditions for missile attack - terrain from gameState
+                        const terrainEffects = calculateTerrainBetweenPoints(attackerShip.position, targetShip.position);
                         const conditions = {
                             targetJinking: targetShip.isJinking || false,
                             attackerJinking: attackerShip.isJinking || false,
-                            dustRU: 0,  // TODO: Calculate from terrain
-                            asteroidRU: 0  // TODO: Calculate from terrain
+                            dustRU: terrainEffects.dustRU,
+                            asteroidRU: terrainEffects.asteroidRU
                         };
                         
                         // Resolve each missile individually
@@ -3793,6 +3810,19 @@
                 });
             }
             
+            // Repair damaged engines (50% chance per damaged engine per use)
+            repairDamagedEngines() {
+                let repaired = 0;
+                this.engines.forEach(engine => {
+                    if (engine.status === ENGINE_SYSTEM.STATUS.DAMAGED && Math.random() < 0.5) {
+                        engine.status = ENGINE_SYSTEM.STATUS.OPERATIONAL;
+                        engine.hitPoints = engine.maxHitPoints || 10;
+                        repaired++;
+                    }
+                });
+                return repaired;
+            }
+            
             // Get engine status summary
             getEngineStatus() {
                 const status = {
@@ -4509,6 +4539,23 @@
                 }
             },
             
+            TRANSPORT: {
+                name: 'Civilian Transport',
+                faction: 'CIVILIAN',
+                size: 3, length: 2, width: 1,
+                thrust: 6, maxSpeed: 18, turnRate: 60,
+                shields: { fore: 8, aft: 8 },
+                turrets: { left: 2, right: 2 },
+                ew: 0,
+                crew: { total: 80, marines: 0, quality: 'GREEN', captain: 'Captain Unknown', isAce: false },
+                armor: { front: {x: 2, y: 2}, rear: {x: 1, y: 1} },
+                weapons: {
+                    spinal: [], broadsides: [], fore: [], aft: [],
+                    missiles: { remaining: 0, total: 0 },
+                    fighters: { onboard: 0, total: 0, launchRate: 0, defaultType: null }
+                }
+            },
+            
             // Legacy ship maintained for compatibility
             CRUISER: {
                 name: 'Heavy Cruiser',
@@ -4696,6 +4743,34 @@
                 return bearing;
             }
         };
+
+        // Calculate dust/asteroid RU along line between two points (for combat modifiers)
+        function calculateTerrainBetweenPoints(from, to) {
+            let dustRU = 0, asteroidRU = 0;
+            const features = gameState.terrainFeatures || [];
+            const totalDist = Coordinates.distance(from, to);
+            
+            features.forEach(f => {
+                const type = (f.type || '').toLowerCase();
+                const pos = f.position || { x: 0, y: 0 };
+                const radius = f.radius || 10;
+                const dx = to.x - from.x, dy = to.y - from.y;
+                const len = Math.sqrt(dx*dx + dy*dy) || 0.001;
+                const ux = dx/len, uy = dy/len;
+                const toCenterX = pos.x - from.x, toCenterY = pos.y - from.y;
+                const proj = Math.max(0, Math.min(len, toCenterX*ux + toCenterY*uy));
+                const closestX = from.x + proj*ux, closestY = from.y + proj*uy;
+                const distToCenter = Math.sqrt((pos.x-closestX)**2 + (pos.y-closestY)**2);
+                
+                if (distToCenter <= radius) {
+                    const chord = 2 * Math.sqrt(Math.max(0, radius*radius - distToCenter*distToCenter));
+                    const ru = chord / 5;
+                    if (type === 'dust_storm' || type === 'dust_cloud' || type === 'nebula') dustRU += ru;
+                    else if (type === 'asteroid' || type.indexOf('asteroid') >= 0) asteroidRU += ru;
+                }
+            });
+            return { dustRU: Math.floor(dustRU), asteroidRU: Math.floor(asteroidRU) };
+        }
 
         // Initialize game
         function initGame() {
@@ -5169,6 +5244,32 @@
                     processSystemRecovery();
                 }
                 
+                // Scenario reinforcements (e.g. "TOG reinforcements arrive turn 6")
+                if (gameState.currentScenario?.specialRules) {
+                    const reinfRule = gameState.currentScenario.specialRules.find(r => 
+                        typeof r === 'string' && r.toLowerCase().includes('reinforcement') && r.match(/turn\s*(\d+)/i));
+                    if (reinfRule) {
+                        const m = reinfRule.match(/turn\s*(\d+)/i);
+                        const arriveTurn = m ? parseInt(m[1], 10) : 6;
+                        if (gameState.currentTurn === arriveTurn && gameState.ships) {
+                            const classes = { ...(SHIP_CLASSES || {}), ...(typeof ENHANCED_SHIP_CLASSES !== 'undefined' ? ENHANCED_SHIP_CLASSES : {}) };
+                            const enemyClasses = ['CRUISER', 'DESTROYER', 'REAPER_DESTROYER', 'SCORPION_FRIGATE'].filter(k => classes[k]);
+                            if (enemyClasses.length > 0) {
+                                const cls = classes[enemyClasses[Math.floor(Math.random() * enemyClasses.length)]];
+                                const id = 'reinforcement_' + Date.now();
+                                const ship = new Ship(id, cls, { x: 90, y: 0 }, 180, 'enemy');
+                                gameState.ships.push(ship);
+                                console.log('Reinforcements arrived: ' + ship.class.name);
+                            }
+                        }
+                    }
+                }
+                
+                // Reset fighter squadron movement for new turn
+                if (gameState.fighterSquadrons) {
+                    gameState.fighterSquadrons.forEach(sq => { if (sq.resetMovement) sq.resetMovement(); });
+                }
+                
                 const phaseObj = GAME_PHASES[gameState.currentPhase];
                 gameState.phase = phaseObj.name;
                 console.log(`New turn ${gameState.currentTurn} started - Phase: ${phaseObj.displayName}`);
@@ -5195,6 +5296,22 @@
             
             // Execute phase-specific logic
             executePhaseLogic();
+
+            // Tutorial hooks for phase advancement
+            if (gameState.tutorial && gameState.tutorial.active) {
+                const phaseName = GAME_PHASES[gameState.currentPhase]?.name;
+                if (phaseName === 'MOVEMENT') {
+                    advanceTutorial('phase_MOVEMENT');
+                } else if (phaseName === 'FIGHTER') {
+                    advanceTutorial('phase_FIGHTER');
+                } else if (phaseName === 'FIRING') {
+                    advanceTutorial('phase_FIRING');
+                } else if (phaseName === 'RESOLUTION') {
+                    advanceTutorial('phase_RESOLUTION');
+                } else if (phaseName === 'PLANNING' && gameState.currentTurn > 1) {
+                    advanceTutorial('phase_PLANNING_NEXT');
+                }
+            }
             
             // Update displays
             updateDisplay();
@@ -5323,9 +5440,16 @@
         }
 
         function executeFighterMovement() {
-            // Placeholder for fighter movement execution
-            console.log('Fighters executing movement orders');
-            // TODO: Implement fighter movement in future update
+            if (gameState.fighterSquadrons && gameState.fighterSquadrons.length > 0) {
+                gameState.fighterSquadrons.forEach(sq => {
+                    if ((sq.status === 'LAUNCHED' || sq.status === 'RETURNING') && typeof sq.executeMovement === 'function') {
+                        sq.executeMovement();
+                    } else if ((sq.status === 'LAUNCHED' || sq.status === 'RETURNING') && typeof sq.move === 'function') {
+                        sq.move();
+                    }
+                });
+                console.log('Fighter movement phase executed');
+            }
         }
 
         function executeResolutionPhase() {
@@ -5573,7 +5697,8 @@
             const x = (e.clientX - rect.left - canvas.width/2) / gameState.camera.zoom - gameState.camera.x;
             const y = (e.clientY - rect.top - canvas.height/2) / gameState.camera.zoom - gameState.camera.y;
             
-            // Find clicked ship
+            if (gameState.ftlPlotMode && gameState.selectedShip && gameState.selectedShip.team === 'player') return; // Handled by enhanced handler
+            
             const clickedShip = gameState.ships.find(ship => {
                 const distance = Coordinates.distance(ship.position, { x, y });
                 return distance <= ship.class.size && ship.status !== 'DESTROYED';
@@ -7416,6 +7541,10 @@
                 // Launch patrol immediately
                 launchSquadronWithMission(ship, missionType, null);
             }
+
+            if (gameState.tutorial && gameState.tutorial.active) {
+                advanceTutorial('launchFighters');
+            }
         }
         
         function showTargetSelection(missionType, motherShip) {
@@ -7979,6 +8108,15 @@
                     { type: 'black_hole', position: { x: -20, y: 0 }, radius: 15, properties: { name: 'Micro Singularity' } },
                     { type: 'asteroid', position: { x: 30, y: -25 }, radius: 20, properties: { name: 'Derelict Hulk' } },
                     { type: 'dust_storm', position: { x: 0, y: 35 }, radius: 25, properties: { name: 'Debris Cloud' } }
+                ]
+            },
+            
+            SENSOR_SHADOWS: {
+                name: 'Sensor Shadows',
+                description: 'Anomalous region that interferes with long-range sensors',
+                features: [
+                    { type: 'nebula', position: { x: -25, y: 0 }, radius: 30, properties: { name: 'Ionized Gas Cloud' } },
+                    { type: 'dust_storm', position: { x: 20, y: -15 }, radius: 25, properties: { name: 'Dust Field' } }
                 ]
             }
         };
@@ -8685,10 +8823,12 @@
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     if (distance <= moveDistance + 5) {
-                        // Dock with mother ship
+                        // Dock with mother ship - return surviving fighters
+                        const survivors = this.fighters.filter(f => f.status === 'ACTIVE').length;
+                        this.motherShip.class.weapons.fighters.onboard = (this.motherShip.class.weapons.fighters.onboard || 0) + survivors;
                         this.status = 'DOCKED';
-                        this.motherShip.class.weapons.fighters.onboard++;
-                        console.log(`Squadron ${this.id} returned to base`);
+                        gameState.fighterSquadrons = (gameState.fighterSquadrons || []).filter(s => s.id !== this.id);
+                        console.log(`Squadron ${this.id} returned to base with ${survivors} fighters`);
                         return;
                     }
                     
@@ -8722,6 +8862,11 @@
             // Reset movement for new turn
             resetMovement() {
                 this.hasMovedThisTurn = false;
+            }
+            
+            // Alias for phase system - executeMovementPhase calls this
+            executeMovement() {
+                this.move();
             }
         }
 
@@ -8910,10 +9055,23 @@
         }
 
         function executeMovementPhase() {
-            // Execute all ship movements
+            // Player ships: execute confirmed orders from shipOrders
             gameState.ships.forEach(ship => {
-                if (ship.status !== 'DESTROYED' && ship.executeMovement) {
-                    ship.executeMovement();
+                if (ship.status === 'DESTROYED') return;
+                if (ship.team === 'player' && ship.ordersConfirmed) {
+                    const orders = gameState.shipOrders.get(ship.id);
+                    if (orders && (orders.speed !== undefined || orders.facing !== undefined)) {
+                        const speed = orders.speed !== undefined ? orders.speed : ship.speed;
+                        const facing = orders.facing !== undefined ? orders.facing : ship.facing;
+                        const movement = Coordinates.toCartesian(speed, facing);
+                        ship.position.x += movement.x;
+                        ship.position.y += movement.y;
+                        ship.speed = speed;
+                        ship.facing = facing;
+                    }
+                } else if (ship.team === 'enemy') {
+                    // Enemy AI movement: move toward nearest player ship or advance
+                    executeEnemyAIMovement(ship);
                 }
             });
             
@@ -8924,7 +9082,31 @@
                 }
             });
             
-            audioSystem.playSound('engine', 0.3);
+            if (typeof audioSystem !== 'undefined') audioSystem.playSound('engine', 0.3);
+        }
+        
+        function executeEnemyAIMovement(ship) {
+            const playerShips = gameState.ships.filter(s => s.team === 'player' && s.status !== 'DESTROYED');
+            if (playerShips.length === 0) return;
+            
+            let nearest = playerShips[0];
+            let minDist = 1e9;
+            playerShips.forEach(target => {
+                const d = Coordinates.distance(ship.position, target.position);
+                if (d < minDist) { minDist = d; nearest = target; }
+            });
+            
+            const bearing = Coordinates.bearing(ship.position, nearest.position);
+            const turnDiff = ((bearing - ship.facing + 540) % 360) - 180;
+            const maxTurn = (ship.class.turnRate || 45) * 0.5;
+            const turn = Math.max(-maxTurn, Math.min(maxTurn, turnDiff));
+            const newFacing = (ship.facing + turn + 360) % 360;
+            const newSpeed = Math.min(ship.class.maxSpeed || 12, ship.speed + 1);
+            const movement = Coordinates.toCartesian(newSpeed, newFacing);
+            ship.position.x += movement.x;
+            ship.position.y += movement.y;
+            ship.speed = newSpeed;
+            ship.facing = newFacing;
         }
 
         function executeFiringPhase() {
@@ -8968,19 +9150,42 @@
         }
 
         function executeEndPhase() {
-            // Check victory conditions
             const playerShips = gameState.ships.filter(ship => ship.team === 'player' && ship.status !== 'DESTROYED');
             const enemyShips = gameState.ships.filter(ship => ship.team === 'enemy' && ship.status !== 'DESTROYED');
+            const totalPlayer = gameState.ships.filter(s => s.team === 'player').length;
+            const totalEnemy = gameState.ships.filter(s => s.team === 'enemy').length;
+            const transports = gameState.ships.filter(s => s.class && s.class.name && s.class.name.toLowerCase().includes('transport'));
+            const transportsAlive = transports.filter(s => s.status !== 'DESTROYED').length;
+            const sc = gameState.currentScenario;
+            const hasTransportObj = sc && sc.objectives && [...(sc.objectives.primary || []), ...(sc.objectives.bonus || [])]
+                .some(o => typeof o === 'string' && o.toLowerCase().includes('transport'));
             
             if (playerShips.length === 0) {
                 alert('Defeat! All friendly ships destroyed.');
                 startNewBattle();
-            } else if (enemyShips.length === 0) {
+                return;
+            }
+            if (transports.length > 0 && transportsAlive < 3 && hasTransportObj) {
+                alert('Defeat! Too many transports lost.');
+                startNewBattle();
+                return;
+            }
+            if (gameState.currentTurn >= (gameState.maxTurns || 12)) {
+                let msg = 'Time limit reached! ';
+                if (sc && sc.objectives) {
+                    const pctEnemy = totalEnemy > 0 ? Math.round(100 * (totalEnemy - enemyShips.length) / totalEnemy) : 100;
+                    if (pctEnemy >= 75 && playerShips.length > 0) msg += 'Victory! Primary objective achieved (75%+ enemy destroyed).';
+                    else if (transports.length > 0 && transportsAlive >= 3) msg += 'Victory! Transports protected.';
+                    else msg += 'Battle ends - assess objectives.';
+                } else msg += 'Battle ends.';
+                alert(msg);
+                startNewBattle();
+                return;
+            }
+            if (enemyShips.length === 0) {
                 alert('Victory! All enemy ships destroyed.');
                 startNewBattle();
-            } else if (gameState.currentTurn >= gameState.maxTurns) {
-                alert('Time limit reached! Battle ends.');
-                startNewBattle();
+                return;
             }
             
             // Repair attempts
@@ -9729,7 +9934,17 @@
         // Repair engines (placeholder - would require repair phase implementation)
         function repairEngines() {
             if (!gameState.selectedShip || !gameState.selectedShip.engineManager) return;
-            alert('Engine repair requires dedicated repair phase implementation');
+            const manager = gameState.selectedShip.engineManager;
+            const repaired = manager.repairDamagedEngines();
+            if (repaired > 0) {
+                alert(`Repaired ${repaired} engine(s). Thrust restored.`);
+                updateEngineDisplay();
+                updateDisplay();
+            } else {
+                const status = manager.getEngineStatus();
+                if (status.damaged === 0) alert('No damaged engines to repair.');
+                else alert('Repair attempted - no engines restored this time. Try again next turn.');
+            }
         }
         
         // Clear hacked engines
@@ -10167,6 +10382,10 @@
             gameState.selectedTarget = null;
             
             updateDisplay();
+
+            if (gameState.tutorial && gameState.tutorial.active) {
+                advanceTutorial('fireWeapons');
+            }
         }
 
         // Clear weapon selection
@@ -10231,14 +10450,26 @@
             ship.ordersConfirmed = true;
             ship.status = 'ORDERS_CONFIRMED';
             
-            // Store current settings as confirmed orders
+            // Store orders - apply speedChange and courseChange to get actual speed/facing
             if (!gameState.shipOrders.has(ship.id)) {
                 gameState.shipOrders.set(ship.id, {});
             }
             
             const orders = gameState.shipOrders.get(ship.id);
-            orders.speed = ship.speed;
-            orders.facing = ship.facing;
+            const speedChange = orders.speedChange || 0;
+            const courseChange = orders.courseChange || 0;
+            const newSpeed = Math.max(0, Math.min(ship.class.maxSpeed || 12, ship.speed + speedChange));
+            const newFacing = (ship.facing + courseChange + 360) % 360;
+            if (orders.maneuver === 'flip') {
+                orders.facing = (ship.facing + 180) % 360;
+                orders.speed = ship.speed;
+            } else if (orders.maneuver === 'roll') {
+                orders.facing = ship.facing;
+                orders.speed = ship.speed;
+            } else {
+                orders.speed = newSpeed;
+                orders.facing = newFacing;
+            }
             orders.sensorMode = ship.sensorMode;
             orders.isStealthed = ship.isStealthed;
             orders.confirmed = true;
@@ -10246,7 +10477,7 @@
             orders.subphase = gameState.subphase;
             
             // Visual feedback
-            alert(`Orders confirmed for ${ship.shipName}\\nSpeed: ${ship.speed}\\nFacing: ${ship.facing}°`);
+            alert(`Orders confirmed for ${ship.shipName}\nSpeed: ${orders.speed}\nFacing: ${orders.facing}°`);
             if (typeof audioSystem !== 'undefined') {
                 audioSystem.playSound('hit', 0.3);
             }
@@ -10255,6 +10486,10 @@
             checkAllOrdersConfirmed();
             
             updateDisplay();
+
+            if (gameState.tutorial && gameState.tutorial.active) {
+                advanceTutorial('confirmOrders');
+            }
         }
 
         // Check if all player ships have confirmed orders - Fixed for simple phase system
@@ -11075,26 +11310,36 @@
             }).join('');
         }
 
-        function executeJump() {
+        function executeJump(destination) {
             if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
             
             const ship = gameState.selectedShip;
+            const maxRange = ship.class.ew * 5;
             
-            // For now, jump to a random nearby location
-            const jumpDistance = 30 + Math.random() * 20;
-            const jumpAngle = Math.random() * Math.PI * 2;
-            const destination = {
-                x: ship.position.x + Math.cos(jumpAngle) * jumpDistance,
-                y: ship.position.y + Math.sin(jumpAngle) * jumpDistance
-            };
+            // Use provided destination, or ftlDestination from Plot Jump, or random
+            let target = destination || gameState.ftlDestination;
+            if (!target) {
+                const jumpDistance = 30 + Math.random() * 20;
+                const jumpAngle = Math.random() * Math.PI * 2;
+                target = {
+                    x: ship.position.x + Math.cos(jumpAngle) * jumpDistance,
+                    y: ship.position.y + Math.sin(jumpAngle) * jumpDistance
+                };
+            }
+            gameState.ftlPlotMode = false;
+            gameState.ftlDestination = null;
             
-            const result = FTLSystem.executeJump(ship, destination);
+            const result = FTLSystem.executeJump(ship, target);
             
             if (result.success) {
                 alert(`FTL jump successful! Scatter: ${result.scatter.toFixed(1)} RU`);
                 updateDisplay();
             } else {
                 alert(`FTL jump failed: ${result.reason}`);
+            }
+
+            if (gameState.tutorial && gameState.tutorial.active) {
+                advanceTutorial('ftlJump');
             }
         }
 
@@ -11111,11 +11356,101 @@
 
         function loadScenario(scenarioKey) {
             if (initializeScenario(scenarioKey)) {
+                // Loading any scenario ends tutorial mode
+                if (gameState.tutorial) {
+                    gameState.tutorial.active = false;
+                }
                 alert(`Scenario loaded: ${BATTLE_SCENARIOS[scenarioKey].name}`);
                 audioSystem.playSound('engine', 0.4);
             } else {
                 alert('Failed to load scenario');
             }
+        }
+
+        // =============================================
+        // PLAYABLE TUTORIAL SYSTEM
+        // =============================================
+
+        const TUTORIAL_STEPS = [
+            {
+                id: 'welcome',
+                text: 'Welcome to Renegade Legion: Leviathan.\n\nThis guided tutorial will walk you through a full turn: selecting ships, setting orders, moving, firing, and using fighters and FTL.\n\nClick OK, then left-click any highlighted player ship on the map.',
+                require: 'selectShip'
+            },
+            {
+                id: 'planning_orders',
+                text: 'You are now in the PLANNING phase.\n\nUse the Planning / Maneuver controls on the right to set a new speed and a small course change for the selected ship.\nThen press the Confirm Orders button for that ship.',
+                require: 'confirmOrders'
+            },
+            {
+                id: 'end_planning',
+                text: 'Great. Now repeat for at least one more ship if you like.\n\nWhen ready, advance to the Movement phase using Next Phase (or SPACE).',
+                require: 'phase_MOVEMENT'
+            },
+            {
+                id: 'movement',
+                text: 'Movement phase: ships execute the orders you just set.\n\nWatch your ships move on the map. When movement is complete, advance to the Fighter phase.',
+                require: 'phase_FIGHTER'
+            },
+            {
+                id: 'fighters_launch',
+                text: 'Fighter phase.\n\nSelect a carrier or ship with fighters, open the Fighter Operations panel, and launch an ESCORT or ATTACK mission.\nPick a target when prompted.',
+                require: 'launchFighters'
+            },
+            {
+                id: 'fighter_move',
+                text: 'Fighter Movement phase: your launched squadrons move toward their targets or escorts.\n\nAdvance through this phase when you are ready.',
+                require: 'phase_FIRING'
+            },
+            {
+                id: 'firing',
+                text: 'Firing phase.\n\nSelect a ship with weapons, choose an enemy target in arc and range, and fire.\nTerrain, range bands, and EW all influence the result.',
+                require: 'fireWeapons'
+            },
+            {
+                id: 'ftl',
+                text: 'Before we end the turn, try an FTL jump.\n\nSelect one of your ships, click Plot Jump in the FTL panel, then click on the map within your FTL range. The ship will jump if the destination is valid.',
+                require: 'ftlJump'
+            },
+            {
+                id: 'end_turn',
+                text: 'Resolution phase.\n\nRepairs, engine recovery, and victory checks occur here. Advance to the next turn when you are ready.\n\nYou have completed the basic tutorial turn. You can continue playing this scenario or load another from the panel on the right.',
+                require: 'phase_PLANNING_NEXT'
+            }
+        ];
+
+        function showTutorialMessage(step) {
+            alert(step.text);
+        }
+
+        function startTutorial() {
+            // Load a simple, balanced scenario as the tutorial base
+            if (!initializeScenario('FLEET_ENGAGEMENT')) {
+                alert('Failed to start tutorial: scenario load error.');
+                return;
+            }
+            gameState.tutorial.active = true;
+            gameState.tutorial.stepIndex = 0;
+            gameState.tutorial.awaitingAction = TUTORIAL_STEPS[0].require;
+            alert('Tutorial started.\n\nFollow the on-screen instructions. You can exit at any time by loading another scenario.');
+            showTutorialMessage(TUTORIAL_STEPS[0]);
+        }
+
+        function advanceTutorial(requirementMet) {
+            if (!gameState.tutorial || !gameState.tutorial.active) return;
+            const currentStep = TUTORIAL_STEPS[gameState.tutorial.stepIndex];
+            if (!currentStep || gameState.tutorial.awaitingAction !== requirementMet) return;
+
+            // Move to next step
+            gameState.tutorial.stepIndex += 1;
+            const nextStep = TUTORIAL_STEPS[gameState.tutorial.stepIndex];
+            if (!nextStep) {
+                gameState.tutorial.active = false;
+                alert('Tutorial complete.\n\nYou now know the basic flow: Planning → Movement → Fighters → Fighter Movement → Firing → Resolution.');
+                return;
+            }
+            gameState.tutorial.awaitingAction = nextStep.require;
+            showTutorialMessage(nextStep);
         }
 
         function setTerrain(terrainType) {
@@ -11227,11 +11562,12 @@
         }
 
         function calculateJump() {
-            if (!gameState.selectedShip) return;
+            if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
             
             const ship = gameState.selectedShip;
             const maxRange = ship.class.ew * 5;
-            
+            gameState.ftlPlotMode = true;
+            gameState.ftlDestination = null;
             alert(`FTL Jump Range: ${maxRange} RU\nPower Required: ${ship.class.ew * 2} units\nClick on map to set destination`);
         }
 
@@ -11397,31 +11733,80 @@ If camera gets stuck, press 'C' to reset!
         }
 
         function saveGame() {
-            const saveData = {
-                gameState: gameState,
-                currentScenario: gameState.currentScenario,
-                ships: gameState.ships,
-                turn: gameState.currentTurn
-            };
-            
-            localStorage.setItem('leviathan_save', JSON.stringify(saveData));
-            alert('Game saved successfully');
+            try {
+                const shipOrdersArr = gameState.shipOrders instanceof Map 
+                    ? Array.from(gameState.shipOrders.entries()) 
+                    : [];
+                const shipsData = (gameState.ships || []).map(s => ({
+                    id: s.id, team: s.team,
+                    position: { ...s.position }, facing: s.facing, speed: s.speed,
+                    status: s.status, ordersConfirmed: s.ordersConfirmed,
+                    isStealthed: s.isStealthed, sensorMode: s.sensorMode,
+                    shipName: s.shipName, commandingOfficer: s.commandingOfficer,
+                    classKey: Object.keys(SHIP_CLASSES).find(k => SHIP_CLASSES[k] === s.class) || 
+                        Object.keys(ENHANCED_SHIP_CLASSES || {}).find(k => (ENHANCED_SHIP_CLASSES || {})[k] === s.class) || 'CRUISER',
+                    damage: s.damage ? JSON.parse(JSON.stringify(s.damage)) : null
+                }));
+                const saveData = {
+                    currentTurn: gameState.currentTurn || gameState.turn,
+                    currentPhase: gameState.currentPhase,
+                    phase: gameState.phase,
+                    commandPoints: gameState.commandPoints,
+                    maxTurns: gameState.maxTurns,
+                    currentScenarioKey: gameState.currentScenario ? Object.keys(BATTLE_SCENARIOS || {}).find(k => BATTLE_SCENARIOS[k] === gameState.currentScenario) : null,
+                    currentTerrain: gameState.currentTerrain,
+                    terrainFeatures: gameState.terrainFeatures ? JSON.parse(JSON.stringify(gameState.terrainFeatures)) : [],
+                    shipOrders: shipOrdersArr,
+                    ships: shipsData,
+                    camera: gameState.camera ? { ...gameState.camera } : { x: 0, y: 0, zoom: 1 }
+                };
+                localStorage.setItem('leviathan_save', JSON.stringify(saveData));
+                alert('Game saved successfully');
+            } catch (err) {
+                console.error('Save failed:', err);
+                alert('Failed to save game: ' + (err.message || 'Unknown error'));
+            }
         }
 
         function loadGame() {
-            const saveData = localStorage.getItem('leviathan_save');
-            if (saveData) {
-                try {
-                    const data = JSON.parse(saveData);
-                    Object.assign(gameState, data.gameState);
-                    gameState.ships = data.ships;
-                    updateDisplay();
-                    alert('Game loaded successfully');
-                } catch (error) {
-                    alert('Failed to load saved game');
-                }
-            } else {
-                alert('No saved game found');
+            const raw = localStorage.getItem('leviathan_save');
+            if (!raw) { alert('No saved game found'); return; }
+            try {
+                const data = JSON.parse(raw);
+                gameState.currentTurn = data.currentTurn || 1;
+                gameState.turn = data.currentTurn || 1;
+                gameState.currentPhase = data.currentPhase ?? 0;
+                gameState.phase = data.phase || 'PLANNING';
+                gameState.commandPoints = data.commandPoints ?? 3;
+                gameState.maxTurns = data.maxTurns ?? 12;
+                gameState.currentTerrain = data.currentTerrain || 'OPEN_SPACE';
+                gameState.terrainFeatures = data.terrainFeatures || [];
+                if (data.camera) gameState.camera = data.camera;
+                if (data.currentScenarioKey && BATTLE_SCENARIOS) gameState.currentScenario = BATTLE_SCENARIOS[data.currentScenarioKey];
+                
+                gameState.shipOrders.clear();
+                (data.shipOrders || []).forEach(([id, orders]) => gameState.shipOrders.set(id, orders));
+                
+                const classes = { ...(SHIP_CLASSES || {}), ...(typeof ENHANCED_SHIP_CLASSES !== 'undefined' ? ENHANCED_SHIP_CLASSES : {}) };
+                gameState.ships = (data.ships || []).map(sd => {
+                    const sc = classes[sd.classKey] || SHIP_CLASSES.CRUISER;
+                    const ship = new Ship(sd.id, sc, sd.position || { x: 0, y: 0 }, sd.facing || 0, sd.team || 'player');
+                    ship.speed = sd.speed ?? ship.speed;
+                    ship.status = sd.status || 'READY';
+                    ship.ordersConfirmed = !!sd.ordersConfirmed;
+                    ship.isStealthed = !!sd.isStealthed;
+                    ship.sensorMode = sd.sensorMode || 'PASSIVE';
+                    if (sd.shipName) ship.shipName = sd.shipName;
+                    if (sd.commandingOfficer) ship.commandingOfficer = sd.commandingOfficer;
+                    if (sd.damage) ship.damage = sd.damage;
+                    return ship;
+                });
+                updateDisplay();
+                render();
+                alert('Game loaded successfully');
+            } catch (err) {
+                console.error('Load failed:', err);
+                alert('Failed to load saved game: ' + (err.message || 'Unknown error'));
             }
         }
 
@@ -11549,6 +11934,10 @@ If camera gets stuck, press 'C' to reset!
             gameState.selectedShip = ship;
             updateDisplay();
             
+            if (gameState.tutorial && gameState.tutorial.active) {
+                advanceTutorial('selectShip');
+            }
+
             // Show appropriate panels
             const weaponPanel = document.getElementById('weaponPanel');
             const specialPanel = document.getElementById('specialPanel');
@@ -11574,11 +11963,25 @@ If camera gets stuck, press 'C' to reset!
             }
         }
 
-        // Enhanced mouse click handling for ship selection
+        // Enhanced mouse click handling for ship selection and FTL destination
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left - canvas.width/2) / gameState.camera.zoom - gameState.camera.x;
             const y = (e.clientY - rect.top - canvas.height/2) / gameState.camera.zoom - gameState.camera.y;
+            
+            // FTL Plot Mode: click sets destination and executes jump
+            if (gameState.ftlPlotMode && gameState.selectedShip && gameState.selectedShip.team === 'player') {
+                const ship = gameState.selectedShip;
+                const maxRange = ship.class.ew * 5;
+                const dist = Math.sqrt(Math.pow(x - ship.position.x, 2) + Math.pow(y - ship.position.y, 2));
+                if (dist > maxRange) {
+                    alert(`Destination ${dist.toFixed(0)} RU away exceeds FTL range of ${maxRange} RU`);
+                } else {
+                    gameState.ftlPlotMode = false;
+                    executeJump({ x, y });
+                }
+                return;
+            }
             
             // Find clicked ship
             const clickedShip = gameState.ships.find(ship => {
