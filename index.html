@@ -4788,9 +4788,8 @@
             render();
         }
 
-        // Canvas and rendering
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        // Canvas and rendering - deferred to load so inline button handlers are defined (GitHub Pages)
+        let canvas, ctx;
 
         // Original render function - REPLACED BY ENHANCED VERSION BELOW
         // This is kept for fallback compatibility
@@ -11343,11 +11342,56 @@
             }
         }
 
-        // Initialize and start the game
+        // Initialize and start the game (canvas/ctx set here so buttons work on GitHub Pages)
         window.addEventListener('load', () => {
-            initGame();
-            startNewBattle(); // Start with scenario
-            animate();
+            try {
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas ? canvas.getContext('2d') : null;
+                if (!canvas || !ctx) {
+                    console.error('Canvas not found');
+                    alert('Game canvas failed to initialize. Check console.');
+                    return;
+                }
+                initGame();
+                startNewBattle();
+                animate();
+                // Expose handlers for inline onclick (required on GitHub Pages / strict globals)
+                window.loadScenario = typeof loadScenario === 'function' ? loadScenario : function(k) { alert('Load scenario: ' + k); };
+                window.setTerrain = typeof setTerrain === 'function' ? setTerrain : function(t) { alert('Terrain: ' + t); };
+                window.startTutorial = typeof startTutorial === 'function' ? startTutorial : function() { alert('Tutorial'); };
+                window.nextPhase = typeof nextPhase === 'function' ? nextPhase : function() { alert('Next phase'); };
+                window.confirmOrders = typeof confirmOrders === 'function' ? confirmOrders : function() { alert('Confirm orders'); };
+                window.setSpeedChange = typeof setSpeedChange === 'function' ? setSpeedChange : function() {};
+                window.setHeadingChange = typeof setHeadingChange === 'function' ? setHeadingChange : function() {};
+                window.setCourseChange = typeof setCourseChange === 'function' ? setCourseChange : function() {};
+                window.clearOrders = typeof clearOrders === 'function' ? clearOrders : function() {};
+                window.setManeuver = typeof setManeuver === 'function' ? setManeuver : function() {};
+                window.fireSelectedWeapons = typeof fireSelectedWeapons === 'function' ? fireSelectedWeapons : function() { alert('Fire'); };
+                window.calculateJump = typeof calculateJump === 'function' ? calculateJump : function() { alert('Plot jump'); };
+                window.executeJump = typeof executeJump === 'function' ? executeJump : function() { alert('Jump'); };
+                window.emergencyJump = typeof emergencyJump === 'function' ? emergencyJump : function() {};
+                window.interdictJump = typeof interdictJump === 'function' ? interdictJump : function() {};
+                window.launchFighterMission = typeof launchFighterMission === 'function' ? launchFighterMission : function() {};
+                window.recallAllFighters = typeof recallAllFighters === 'function' ? recallAllFighters : function() {};
+                window.attemptRepairs = typeof attemptRepairs === 'function' ? attemptRepairs : function() {};
+                window.reroutePower = typeof reroutePower === 'function' ? reroutePower : function() {};
+                window.toggleAudio = typeof toggleAudio === 'function' ? toggleAudio : function() {};
+                window.toggleEffects = typeof toggleEffects === 'function' ? toggleEffects : function() {};
+                window.adjustVolume = typeof adjustVolume === 'function' ? adjustVolume : function() {};
+                window.showHelp = typeof showHelp === 'function' ? showHelp : function() { alert('Help'); };
+                window.saveGame = typeof saveGame === 'function' ? saveGame : function() { alert('Save'); };
+                window.loadGame = typeof loadGame === 'function' ? loadGame : function() { alert('Load'); };
+                window.startNewBattle = typeof startNewBattle === 'function' ? startNewBattle : function() {};
+                window.resetCamera = typeof resetCamera === 'function' ? resetCamera : function() {};
+                window.showCombatRules = typeof showCombatRules === 'function' ? showCombatRules : function() { alert('Rules'); };
+                window.selectShip = typeof selectShip === 'function' ? selectShip : function() {};
+                window.toggleSensorMode = typeof toggleSensorMode === 'function' ? toggleSensorMode : function() {};
+                window.toggleStealth = typeof toggleStealth === 'function' ? toggleStealth : function() {};
+                window.performSensorSweep = typeof performSensorSweep === 'function' ? performSensorSweep : function() {};
+            } catch (err) {
+                console.error('Game init error:', err);
+                alert('Init error: ' + (err.message || err));
+            }
         });
 
         // =============================================
@@ -12137,52 +12181,22 @@ If camera gets stuck, press 'C' to reset!
             requestAnimationFrame(animate);
         }
 
-        // Initialize and start the game when page loads
+        // Delayed fallback: ensure ships visible (single init is in first load handler above)
         window.addEventListener('load', () => {
-            console.log('Page loaded, initializing game...');
-            
-            // Start with basic initialization first
-            initGame();
-            
-            // Then start battle scenario
             setTimeout(() => {
-                startNewBattle();
-                
-                // Start animation loop
-                animate();
-                
-                console.log('Game fully initialized. Press D for debug info, V to force render.');
-                
-                // FINAL FIX: Ensure ships are visible after 1 second
-                setTimeout(() => {
-                    if (!gameState.ships || gameState.ships.length === 0) {
-                        console.warn('No ships detected after initialization, creating emergency ships...');
-                        
-                        // Emergency ship creation
-                        gameState.ships = [
-                            new Ship('emergency_player_1', SHIP_CLASSES.SHIVA_SUPERDREADNOUGHT, {x: -40, y: 0}, 0, 'player'),
-                            new Ship('emergency_player_2', SHIP_CLASSES.CRUISER, {x: -40, y: 30}, 0, 'player'),
-                            new Ship('emergency_enemy_1', SHIP_CLASSES.BATTLESHIP, {x: 40, y: 0}, 180, 'enemy'),
-                            new Ship('emergency_enemy_2', SHIP_CLASSES.CRUISER, {x: 40, y: 30}, 180, 'enemy')
-                        ];
-                        
-                        console.log('Emergency ships created:', gameState.ships.length);
-                        updateDisplay();
-                    }
-                    
-                    // Force camera reset and render
-                    resetCamera();
-                    render();
-                    
-                    console.log('=== FINAL STATUS ===');
-                    console.log(`Ships: ${gameState.ships.length}`);
-                    console.log(`Camera: ${JSON.stringify(gameState.camera)}`);
-                    console.log('✅ Ship tooltips fixed - hover over ships to see data');
-                    console.log('Press D to debug, C to reset camera, V to force render, T to test tooltips');
-                    
-                }, 1000);
-                
-            }, 100);
+                if (!gameState.ships || gameState.ships.length === 0) {
+                    console.warn('No ships after init, creating emergency ships...');
+                    gameState.ships = [
+                        new Ship('emergency_player_1', SHIP_CLASSES.SHIVA_SUPERDREADNOUGHT, {x: -40, y: 0}, 0, 'player'),
+                        new Ship('emergency_player_2', SHIP_CLASSES.CRUISER, {x: -40, y: 30}, 0, 'player'),
+                        new Ship('emergency_enemy_1', SHIP_CLASSES.BATTLESHIP, {x: 40, y: 0}, 180, 'enemy'),
+                        new Ship('emergency_enemy_2', SHIP_CLASSES.CRUISER, {x: 40, y: 30}, 180, 'enemy')
+                    ];
+                    if (typeof updateDisplay === 'function') updateDisplay();
+                }
+                if (typeof resetCamera === 'function') resetCamera();
+                if (typeof render === 'function') render();
+            }, 1000);
         });
     </script>
 </body>
