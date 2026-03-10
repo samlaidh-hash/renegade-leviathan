@@ -1196,7 +1196,8 @@
         }
         
         // Definitive Missile Types with To Hit%/Range/Damage format
-        const MISSILE_TYPES = {
+        // Missile types are attached to window to avoid duplicate-const issues across builds
+        window.MISSILE_TYPES = window.MISSILE_TYPES || {
             STANDARD: { 
                 name: 'Standard Missile',
                 hitChance: 90,
