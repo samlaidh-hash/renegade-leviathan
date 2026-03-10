@@ -91,6 +91,9 @@
             transform: translateY(-1px); 
             filter: brightness(1.2);
         }
+        .phase-disabled { opacity: 0.45; pointer-events: none; }
+        .btn[data-tooltip] { position: relative; }
+        .control-tooltip { position: fixed; z-index: 9999; max-width: 220px; padding: 6px 8px; background: rgba(0,30,40,0.95); border: 1px solid #4da6ff; border-radius: 4px; font-size: 0.75rem; color: #aaffff; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
         .btn-blue { background: #0066cc; }
         .btn-green { background: #006600; }
         .btn-red { background: #cc0000; }
@@ -248,6 +251,7 @@
             
             <!-- Tooltip -->
             <div id="tooltip" class="tooltip" style="display: none;"></div>
+            <div id="controlTooltip" class="control-tooltip" style="display: none;"></div>
         </div>
         
         <div class="controls">
@@ -256,19 +260,19 @@
             <!-- Game Controls -->
             <div class="section">
                 <h4>Game Controls</h4>
-                <button class="btn btn-blue" data-action="nextPhase" onclick="nextPhase()" style="width: 100%; margin-bottom: 0.5rem;">Next Phase</button>
-                <button class="btn btn-green" data-action="startNewBattle" onclick="startNewBattle()" style="width: 100%; margin-bottom: 0.5rem;">New Battle</button>
-                <button class="btn btn-yellow" data-action="resetCamera" onclick="resetCamera()" style="width: 100%; margin-bottom: 0.5rem;">Reset Camera (C)</button>
-                <button class="btn btn-purple" data-action="showCombatRules" onclick="showCombatRules()" style="width: 100%;">📖 Combat Rules Reference</button>
+                <button class="btn btn-blue" data-action="nextPhase" data-tooltip="Advance to the next phase (Planning → Movement → Fighter → Firing → Resolution)." onclick="nextPhase()" style="width: 100%; margin-bottom: 0.5rem;">Next Phase</button>
+                <button class="btn btn-green" data-action="startNewBattle" data-tooltip="Start a new battle; current game state is reset." onclick="startNewBattle()" style="width: 100%; margin-bottom: 0.5rem;">New Battle</button>
+                <button class="btn btn-yellow" data-action="resetCamera" data-tooltip="Center the map and reset zoom to 1x. Shortcut: C." onclick="resetCamera()" style="width: 100%; margin-bottom: 0.5rem;">Reset Camera (C)</button>
+                <button class="btn btn-purple" data-action="showCombatRules" data-tooltip="Open the combat rules reference in a new window." onclick="showCombatRules()" style="width: 100%;">📖 Combat Rules Reference</button>
             </div>
             
             <!-- Planning Phase Interface - UPDATE #3 -->
             <div class="section planning-interface" id="planningInterface" style="display: block;">
                 <h4 style="color: #00ff00;">📋 Planning Phase</h4>
                 <div style="font-size: 0.75rem; margin-bottom: 0.5rem;">
-                    <p>• Select ships to issue orders</p>
-                    <p>• Set speed/course changes</p>
-                    <p>• Configure sensor operations</p>
+                    <p>• LMB ship to select (shows arcs + ghost)</p>
+                    <p>• LMB ghost to drag; wheel to rotate (costs Thrust)</p>
+                    <p>• LMB again to lock ghost; Confirm Orders when done</p>
                     <p>• All ships must have orders</p>
                 </div>
                 <div id="orderProgress" style="background: #333; height: 8px; border-radius: 4px; margin: 0.5rem 0;">
@@ -288,32 +292,15 @@
                 <h4>🎯 Ship Orders</h4>
                 <div id="shipDetails"></div>
                 
-                <!-- Movement Orders -->
-                <div style="margin: 0.5rem 0;">
-                    <p style="color: #4da6ff; font-size: 0.8rem; margin-bottom: 0.25rem;">⚡ Speed Change</p>
-                    <div class="button-grid-4">
-                        <button class="btn btn-red" data-action="setSpeedChange" data-arg="-2" onclick="setSpeedChange(-2)">-2</button>
-                        <button class="btn btn-red" data-action="setSpeedChange" data-arg="-1" onclick="setSpeedChange(-1)">-1</button>
-                        <button class="btn btn-green" data-action="setSpeedChange" data-arg="1" onclick="setSpeedChange(1)">+1</button>
-                        <button class="btn btn-green" data-action="setSpeedChange" data-arg="2" onclick="setSpeedChange(2)">+2</button>
-                    </div>
-                </div>
-                
-                <div style="margin: 0.5rem 0;">
-                    <p style="color: #aa44ff; font-size: 0.8rem; margin-bottom: 0.25rem;">🔄 Course Change</p>
-                    <div class="button-grid-4">
-                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="-45" onclick="setHeadingChange(-45)">-45°</button>
-                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="-15" onclick="setHeadingChange(-15)">-15°</button>
-                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="15" onclick="setHeadingChange(15)">+15°</button>
-                        <button class="btn btn-purple" data-action="setHeadingChange" data-arg="45" onclick="setHeadingChange(45)">+45°</button>
-                    </div>
+                <!-- Movement: set by dragging ghost on map (LMB ghost = drag, wheel = rotate 15°/1 Thrust) -->
+                <div style="margin: 0.5rem 0; font-size: 0.75rem; color: #888;">
+                    <p>Click ghost on map to drag (costs Thrust by sector). Wheel to rotate 15° (1 Thrust). Roll = 2 Thrust.</p>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #ff8800; font-size: 0.8rem; margin-bottom: 0.25rem;">🔀 Special Maneuvers</p>
                     <div class="button-grid">
-                        <button class="btn btn-orange" data-action="setManeuver" data-arg="flip" onclick="setManeuver('flip')">Flip Ship</button>
-                        <button class="btn btn-orange" data-action="setManeuver" data-arg="roll" onclick="setManeuver('roll')">Roll Ship</button>
+                        <button class="btn btn-orange" data-action="setManeuver" data-arg="roll" data-tooltip="Roll ship (change orientation). Costs 2 Thrust. Planning phase only." onclick="setManeuver('roll')">Roll Ship (2 Thrust)</button>
                     </div>
                 </div>
                 
@@ -325,8 +312,8 @@
                 
                 <!-- UPDATE #5: Order Confirmation Buttons -->
                 <div class="button-grid" style="margin-top: 0.5rem;">
-                    <button class="btn btn-green" data-action="confirmOrders" onclick="confirmOrders()" style="width: 100%;">✓ Confirm Orders</button>
-                    <button class="btn btn-red" data-action="clearOrders" onclick="clearOrders()" style="width: 100%;">Clear Orders</button>
+                    <button class="btn btn-green" data-action="confirmOrders" data-tooltip="Lock in speed, heading, and maneuvers for the selected ship. Only in Planning phase." onclick="confirmOrders()" style="width: 100%;">✓ Confirm Orders</button>
+                    <button class="btn btn-red" data-action="clearOrders" data-tooltip="Clear the current orders for the selected ship so you can set new ones." onclick="clearOrders()" style="width: 100%;">Clear Orders</button>
                 </div>
             </div>
             
@@ -338,10 +325,10 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #00aaaa; font-size: 0.8rem; margin-bottom: 0.25rem;">📡 Sensor Operations</p>
                     <div class="button-grid">
-                        <button class="btn btn-cyan" onclick="toggleSensorMode()" id="sensorBtn">Active Scan</button>
-                        <button class="btn btn-purple" onclick="toggleStealth()" id="stealthBtn">Stealth OFF</button>
-                        <button class="btn btn-yellow" onclick="performSensorSweep()">Sensor Sweep</button>
-                        <button class="btn btn-red" onclick="jamEnemySensors()">EW Jam</button>
+                        <button class="btn btn-cyan" data-tooltip="Toggle between Active Scan (longer range) and Passive Scan. Affects sensor arc and detection." onclick="toggleSensorMode()" id="sensorBtn">Active Scan</button>
+                        <button class="btn btn-purple" data-tooltip="Toggle stealth mode for the selected ship; reduces signature but may limit weapons." onclick="toggleStealth()" id="stealthBtn">Stealth OFF</button>
+                        <button class="btn btn-yellow" data-tooltip="Perform a sensor sweep to detect and identify contacts within sensor range." onclick="performSensorSweep()">Sensor Sweep</button>
+                        <button class="btn btn-red" data-tooltip="Use electronic warfare to jam enemy sensors; costs EW allocation." onclick="jamEnemySensors()">EW Jam</button>
                     </div>
                 </div>
                 
@@ -365,8 +352,9 @@
                 </div>
                 
                 <div class="button-grid" style="margin-top: 0.5rem;">
-                    <button class="btn btn-blue" onclick="applyLoadout()">Apply Loadout</button>
-                    <button class="btn btn-yellow" onclick="resetLoadout()">Reset Default</button>
+                    <button class="btn btn-blue" data-tooltip="Apply the configured missile mix to the ship and close this panel." onclick="applyLoadout()">Apply Loadout</button>
+                    <button class="btn btn-yellow" data-tooltip="Reset missile allocation to default distribution." onclick="resetLoadout()">Reset Default</button>
+                    <button class="btn btn-cyan" data-tooltip="Close this panel without applying changes." onclick="document.getElementById('missileLoadoutPanel').style.display='none'; currentLoadoutShip=null;">Done</button>
                 </div>
             </div>
             
@@ -384,8 +372,8 @@
                 </div>
                 
                 <div class="button-grid" style="margin-top: 0.5rem;">
-                    <button class="btn btn-red" onclick="fireSalvo()">Fire Salvo</button>
-                    <button class="btn btn-blue" onclick="clearSalvo()">Clear</button>
+                    <button class="btn btn-red" data-tooltip="Fire the composed missile salvo at the current target. Firing phase only." onclick="fireSalvo()">Fire Salvo</button>
+                    <button class="btn btn-blue" data-tooltip="Clear the current salvo composition so you can pick missiles again." onclick="clearSalvo()">Clear</button>
                 </div>
             </div>
             
@@ -419,8 +407,8 @@
                 </div>
                 
                 <div class="button-grid" style="margin-top: 0.5rem;">
-                    <button class="btn btn-green" onclick="confirmDefense()">Confirm Defense</button>
-                    <button class="btn btn-red" onclick="skipDefense()">No Defense</button>
+                    <button class="btn btn-green" data-tooltip="Confirm laser defense allocation against incoming missiles." onclick="confirmDefense()">Confirm Defense</button>
+                    <button class="btn btn-red" data-tooltip="Skip missile defense for this ship (no point-defense allocation)." onclick="skipDefense()">No Defense</button>
                 </div>
             </div>
 
@@ -495,15 +483,15 @@
                 <!-- Fire Control -->
                 <div style="margin: 0.5rem 0;">
                     <div class="button-grid">
-                        <button class="btn btn-red" onclick="fireSelectedWeapons()" id="fireBtn">🔥 Fire Selected</button>
-                        <button class="btn btn-orange" onclick="clearWeaponSelection()">Clear Selection</button>
-                        <button class="btn btn-cyan" onclick="activatePointDefense()">Point Defense</button>
-                        <button class="btn btn-green" onclick="updateTargetList()">Refresh Targets</button>
+                        <button class="btn btn-red" data-tooltip="Fire all selected weapon batteries at the current target. Firing phase only." onclick="fireSelectedWeapons()" id="fireBtn">🔥 Fire Selected</button>
+                        <button class="btn btn-orange" data-tooltip="Clear which weapon batteries are selected for firing." onclick="clearWeaponSelection()">Clear Selection</button>
+                        <button class="btn btn-cyan" data-tooltip="Allocate turrets for point defense against incoming missiles." onclick="activatePointDefense()">Point Defense</button>
+                        <button class="btn btn-green" data-tooltip="Refresh the list of valid targets in arc and range." onclick="updateTargetList()">Refresh Targets</button>
                     </div>
                     
                     <!-- UPDATE #13: Boarding Controls -->
                     <div style="margin-top: 0.5rem;">
-                        <button class="btn btn-yellow" onclick="withdrawFromBoarding()" id="withdrawBoardingBtn" style="display: none; width: 100%;">🚪 Withdraw Boarding</button>
+                        <button class="btn btn-yellow" data-tooltip="Request to withdraw from the current boarding action. Both sides must agree to end." onclick="withdrawFromBoarding()" id="withdrawBoardingBtn" style="display: none; width: 100%;">🚪 Withdraw Boarding</button>
                     </div>
                     
                     <!-- Boarding Status Display -->
@@ -514,8 +502,8 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #ff8800; font-size: 0.8rem; margin-bottom: 0.25rem;">🚀 Missile Systems</p>
                     <div class="button-grid">
-                        <button class="btn btn-orange" onclick="openMissileLoadout()">⚙️ Setup Loadout</button>
-                        <button class="btn btn-red" onclick="openMissileSalvo()">🎯 Fire Missiles</button>
+                        <button class="btn btn-orange" data-tooltip="Configure missile types and counts for the selected ship. Panel opens below; use Apply or Done when finished." onclick="openMissileLoadout()">⚙️ Setup Loadout</button>
+                        <button class="btn btn-red" data-tooltip="Fire a missile salvo at the current target. Available in Firing phase." onclick="openMissileSalvo()">🎯 Fire Missiles</button>
                     </div>
                 </div>
                 
@@ -523,16 +511,16 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #00aaff; font-size: 0.8rem; margin-bottom: 0.25rem;">✈️ Fighter Operations</p>
                     <div class="button-grid">
-                        <button class="btn btn-blue" onclick="openFighterSetup()">⚙️ Setup Fighters</button>
-                        <button class="btn btn-cyan" onclick="toggleFighterOps()">🎯 Fighter Ops</button>
+                        <button class="btn btn-blue" data-tooltip="Open fighter squadron setup: assign squadrons, loadouts, and pilots. Panel opens below." onclick="openFighterSetup()">⚙️ Setup Fighters</button>
+                        <button class="btn btn-cyan" data-tooltip="Open fighter operations: launch, recall, assign missions. Available in Fighter phase." onclick="toggleFighterOps()">🎯 Fighter Ops</button>
                     </div>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #ffaa00; font-size: 0.8rem; margin-bottom: 0.25rem;">⚙️ Engineering</p>
                     <div class="button-grid">
-                        <button class="btn btn-yellow" onclick="toggleEnginePanel()">🔧 Engine Status</button>
-                        <button class="btn btn-red" onclick="initiateHackingAttack()">⚡ EW Hack</button>
+                        <button class="btn btn-yellow" data-tooltip="Show or hide engine status and damage/repair options." onclick="toggleEnginePanel()">🔧 Engine Status</button>
+                        <button class="btn btn-red" data-tooltip="Initiate an electronic warfare hack against an enemy ship. Uses EW allocation." onclick="initiateHackingAttack()">⚡ EW Hack</button>
                     </div>
                 </div>
             </div>
@@ -554,8 +542,8 @@
                 </div>
                 
                 <div class="button-grid" style="margin-top: 0.5rem;">
-                    <button class="btn btn-blue" onclick="applyFighterSetup()">Apply Setup</button>
-                    <button class="btn btn-yellow" onclick="resetFighterSetup()">Reset Default</button>
+                    <button class="btn btn-blue" data-tooltip="Apply fighter squadron configuration and close the setup panel." onclick="applyFighterSetup()">Apply Setup</button>
+                    <button class="btn btn-yellow" data-tooltip="Reset fighter setup to default squadron assignments." onclick="resetFighterSetup()">Reset Default</button>
                 </div>
             </div>
             
@@ -571,8 +559,8 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #00aaff; font-size: 0.8rem; margin-bottom: 0.25rem;">🎯 Squadron Orders</p>
                     <div class="button-grid">
-                        <button class="btn btn-green" onclick="launchFighters()">Launch Fighters</button>
-                        <button class="btn btn-orange" onclick="recallFighters()">Recall All</button>
+                        <button class="btn btn-green" data-tooltip="Launch all ready fighter squadrons from the selected carrier." onclick="launchFighters()">Launch Fighters</button>
+                        <button class="btn btn-orange" data-tooltip="Recall all fighter squadrons to the selected carrier." onclick="recallFighters()">Recall All</button>
                     </div>
                 </div>
                 
@@ -599,8 +587,8 @@
                 
                 <div style="margin: 0.5rem 0;">
                     <div class="button-grid">
-                        <button class="btn btn-blue" onclick="repairEngines()">Repair Engines</button>
-                        <button class="btn btn-red" onclick="clearHackedEngines()">Clear Hacks</button>
+                        <button class="btn btn-blue" data-tooltip="Attempt to repair damaged engines; success depends on damage level and crew." onclick="repairEngines()">Repair Engines</button>
+                        <button class="btn btn-red" data-tooltip="Clear EW hacks affecting this ship's engines (if countermeasures succeed)." onclick="clearHackedEngines()">Clear Hacks</button>
                     </div>
                 </div>
             </div>
@@ -639,8 +627,8 @@
                     
                     <!-- EW Controls -->
                     <div class="button-grid" style="margin: 0.5rem 0;">
-                        <button class="btn btn-yellow" onclick="resetEW()">Reset EW</button>
-                        <button class="btn btn-green" onclick="confirmEW()">Confirm EW</button>
+                        <button class="btn btn-yellow" data-tooltip="Reset EW allocation and hack choices so you can reallocate." onclick="resetEW()">Reset EW</button>
+                        <button class="btn btn-green" data-tooltip="Confirm electronic warfare actions (jamming, hacks) for this turn." onclick="confirmEW()">Confirm EW</button>
                     </div>
                 </div>
                 
@@ -651,23 +639,23 @@
                     <!-- Target Cycling -->
                     <div style="background: #1a1a1a; border: 1px solid #444; padding: 0.25rem; margin-bottom: 0.5rem; border-radius: 3px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <button class="btn btn-purple" onclick="cycleHackTarget(-1)" style="padding: 0.2rem 0.4rem;">◀</button>
+                            <button class="btn btn-purple" data-tooltip="Cycle hack target to the previous enemy ship." onclick="cycleHackTarget(-1)" style="padding: 0.2rem 0.4rem;">◀</button>
                             <div style="text-align: center; flex: 1;">
                                 <div id="hackTargetName" style="font-size: 0.75rem; color: #ff6666;">No Target</div>
                                 <div id="hackTargetInfo" style="font-size: 0.6rem; color: #999;">Select target</div>
                             </div>
-                            <button class="btn btn-purple" onclick="cycleHackTarget(1)" style="padding: 0.2rem 0.4rem;">▶</button>
+                            <button class="btn btn-purple" data-tooltip="Cycle hack target to the next enemy ship." onclick="cycleHackTarget(1)" style="padding: 0.2rem 0.4rem;">▶</button>
                         </div>
                     </div>
                     
                     <!-- Hacking Options -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; margin-bottom: 0.5rem;">
-                        <button class="btn btn-purple" onclick="attemptHack('WEAPON_BATTERY')" style="font-size: 0.7rem;">Disable Weapons</button>
-                        <button class="btn btn-purple" onclick="attemptHack('SPINAL_MOUNT')" style="font-size: 0.7rem;">Disable Spinal</button>
-                        <button class="btn btn-purple" onclick="attemptHack('FIGHTER_OPS')" style="font-size: 0.7rem;">Jam Fighters</button>
-                        <button class="btn btn-purple" onclick="attemptHack('MISSILES')" style="font-size: 0.7rem;">Disable Missiles</button>
-                        <button class="btn btn-purple" onclick="attemptHack('ENGINE')" style="font-size: 0.7rem;">Disable Engine</button>
-                        <button class="btn btn-red" onclick="attemptHack('RANDOM')" style="font-size: 0.7rem;">Random Hack</button>
+                        <button class="btn btn-purple" data-tooltip="Attempt to disable the target's weapon batteries via EW." onclick="attemptHack('WEAPON_BATTERY')" style="font-size: 0.7rem;">Disable Weapons</button>
+                        <button class="btn btn-purple" data-tooltip="Attempt to disable the target's spinal mount." onclick="attemptHack('SPINAL_MOUNT')" style="font-size: 0.7rem;">Disable Spinal</button>
+                        <button class="btn btn-purple" data-tooltip="Attempt to jam the target's fighter operations." onclick="attemptHack('FIGHTER_OPS')" style="font-size: 0.7rem;">Jam Fighters</button>
+                        <button class="btn btn-purple" data-tooltip="Attempt to disable the target's missile systems." onclick="attemptHack('MISSILES')" style="font-size: 0.7rem;">Disable Missiles</button>
+                        <button class="btn btn-purple" data-tooltip="Attempt to disable the target's engines." onclick="attemptHack('ENGINE')" style="font-size: 0.7rem;">Disable Engine</button>
+                        <button class="btn btn-red" data-tooltip="Attempt a random hack; system affected is chosen randomly." onclick="attemptHack('RANDOM')" style="font-size: 0.7rem;">Random Hack</button>
                     </div>
                     
                     <!-- Hack Status -->
@@ -680,10 +668,10 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #00ffff; font-size: 0.8rem; margin-bottom: 0.25rem;">🌟 FTL Operations</p>
                     <div class="button-grid">
-                        <button class="btn btn-cyan" data-action="executeJump" onclick="executeJump()">FTL Jump</button>
-                        <button class="btn btn-cyan" data-action="calculateJump" onclick="calculateJump()">Plot Jump</button>
-                        <button class="btn btn-green" onclick="emergencyJump()">Emergency Jump</button>
-                        <button class="btn btn-yellow" onclick="interdictJump()">Jump Interdiction</button>
+                        <button class="btn btn-cyan" data-action="executeJump" data-tooltip="Execute the plotted FTL jump for the selected ship." onclick="executeJump()">FTL Jump</button>
+                        <button class="btn btn-cyan" data-action="calculateJump" data-tooltip="Plot an FTL jump vector; then use FTL Jump to execute." onclick="calculateJump()">Plot Jump</button>
+                        <button class="btn btn-green" data-tooltip="Attempt an emergency jump without full calculation; higher risk." onclick="emergencyJump()">Emergency Jump</button>
+                        <button class="btn btn-yellow" data-tooltip="Attempt to interdict an enemy ship's FTL jump." onclick="interdictJump()">Jump Interdiction</button>
                     </div>
                 </div>
                 
@@ -691,8 +679,8 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #ffaa00; font-size: 0.8rem; margin-bottom: 0.25rem;">🛠️ Repair & Support</p>
                     <div class="button-grid">
-                        <button class="btn btn-green" onclick="attemptRepairs()">Emergency Repair</button>
-                        <button class="btn btn-yellow" onclick="reroutePower()">Reroute Power</button>
+                        <button class="btn btn-green" data-tooltip="Attempt emergency repairs on damaged systems. Success depends on damage level." onclick="attemptRepairs()">Emergency Repair</button>
+                        <button class="btn btn-yellow" data-tooltip="Reroute power between systems (weapons, engines, shields) to optimize performance." onclick="reroutePower()">Reroute Power</button>
                     </div>
                 </div>
             </div>
@@ -718,18 +706,18 @@
                 <div style=\"margin: 0.5rem 0;\">
                     <p style=\"color: #aa00ff; font-size: 0.8rem; margin-bottom: 0.25rem;\">🚀 Launch Missions</p>
                     <div style=\"display: grid; grid-template-columns: 1fr; gap: 0.25rem; margin-bottom: 0.5rem;\">
-                        <button class=\"btn btn-purple\" onclick=\"launchFighterMission('ESCORT')\" style=\"font-size: 0.8rem;\">
+                        <button class=\"btn btn-purple\" data-tooltip=\"Assign escort mission; auto-selects squadron with highest dogfight rating.\" onclick=\"launchFighterMission('ESCORT')\" style=\"font-size: 0.8rem;\">
                             Escort Mission (Auto-select: Highest Dogfight)
                         </button>
-                        <button class=\"btn btn-purple\" onclick=\"launchFighterMission('ATTACK')\" style=\"font-size: 0.8rem;\">
+                        <button class=\"btn btn-purple\" data-tooltip=\"Assign attack mission; auto-selects squadron with highest anti-ship rating.\" onclick=\"launchFighterMission('ATTACK')\" style=\"font-size: 0.8rem;\">
                             Attack Mission (Auto-select: Highest Anti-Ship)
                         </button>
-                        <button class=\"btn btn-purple\" onclick=\"launchFighterMission('PATROL')\" style=\"font-size: 0.8rem;\">
+                        <button class=\"btn btn-purple\" data-tooltip=\"Assign patrol mission; auto-selects squadron with highest thrust.\" onclick=\"launchFighterMission('PATROL')\" style=\"font-size: 0.8rem;\">
                             Patrol Mission (Auto-select: Highest Thrust)
                         </button>
                     </div>
                     <div style=\"margin-top: 0.5rem;\">
-                        <button class=\"btn btn-yellow\" onclick=\"recallAllFighters()\" style=\"width: 100%; font-size: 0.8rem;\">
+                        <button class=\"btn btn-yellow\" data-tooltip=\"Recall all fighter squadrons to the carrier.\" onclick=\"recallAllFighters()\" style=\"width: 100%; font-size: 0.8rem;\">
                             Recall All Fighters
                         </button>
                     </div>
@@ -784,11 +772,11 @@
                 <div style="margin: 0.5rem 0;">
                     <p style="color: #00ff00; font-size: 0.8rem; margin-bottom: 0.25rem;">🌍 Terrain Options</p>
                     <div class="button-grid">
-                        <button class="btn btn-cyan" data-action="setTerrain" data-arg="OPEN_SPACE" onclick="setTerrain('OPEN_SPACE')">Open Space</button>
-                        <button class="btn btn-red" data-action="setTerrain" data-arg="ASTEROID_FIELD" onclick="setTerrain('ASTEROID_FIELD')">Asteroids</button>
-                        <button class="btn btn-yellow" data-action="setTerrain" data-arg="DUST_STORM" onclick="setTerrain('DUST_STORM')">Dust Storm</button>
-                        <button class="btn btn-purple" data-action="setTerrain" data-arg="NEBULA" onclick="setTerrain('NEBULA')">Nebula</button>
-                        <button class="btn btn-cyan" data-action="setTerrain" data-arg="SENSOR_SHADOWS" onclick="setTerrain('SENSOR_SHADOWS')">Sensor Shadows</button>
+                        <button class="btn btn-cyan" data-action="setTerrain" data-arg="OPEN_SPACE" data-tooltip="Set terrain to Open Space: no modifiers." onclick="setTerrain('OPEN_SPACE')">Open Space</button>
+                        <button class="btn btn-red" data-action="setTerrain" data-arg="ASTEROID_FIELD" data-tooltip="Set terrain to Asteroid Field: cover and collision risk." onclick="setTerrain('ASTEROID_FIELD')">Asteroids</button>
+                        <button class="btn btn-yellow" data-action="setTerrain" data-arg="DUST_STORM" data-tooltip="Set terrain to Dust Storm: reduced visibility and sensors." onclick="setTerrain('DUST_STORM')">Dust Storm</button>
+                        <button class="btn btn-purple" data-action="setTerrain" data-arg="NEBULA" data-tooltip="Set terrain to Nebula: sensor and weapon range penalties." onclick="setTerrain('NEBULA')">Nebula</button>
+                        <button class="btn btn-cyan" data-action="setTerrain" data-arg="SENSOR_SHADOWS" data-tooltip="Set terrain to Sensor Shadows: areas of reduced detection." onclick="setTerrain('SENSOR_SHADOWS')">Sensor Shadows</button>
                     </div>
                 </div>
             </div>
@@ -799,17 +787,17 @@
                 
                 <div style="margin: 0.5rem 0;">
                     <div class="button-grid">
-                        <button class="btn btn-green" onclick="toggleAudio()">Audio ON</button>
-                        <button class="btn btn-blue" onclick="toggleEffects()">Effects ON</button>
-                        <button class="btn btn-yellow" onclick="adjustVolume()">Volume</button>
-                        <button class="btn btn-purple" data-action="showHelp" onclick="showHelp()">Help</button>
+                        <button class="btn btn-green" data-tooltip="Toggle game audio (music and sound effects) on or off." onclick="toggleAudio()">Audio ON</button>
+                        <button class="btn btn-blue" data-tooltip="Toggle visual effects (explosions, weapon fire) on or off." onclick="toggleEffects()">Effects ON</button>
+                        <button class="btn btn-yellow" data-tooltip="Adjust master volume." onclick="adjustVolume()">Volume</button>
+                        <button class="btn btn-purple" data-action="showHelp" data-tooltip="Open the help and controls reference." onclick="showHelp()">Help</button>
                     </div>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
                     <div class="button-grid">
-                        <button class="btn btn-cyan" data-action="saveGame" onclick="saveGame()">Save Game</button>
-                        <button class="btn btn-orange" data-action="loadGame" onclick="loadGame()">Load Game</button>
+                        <button class="btn btn-cyan" data-action="saveGame" data-tooltip="Save the current battle state to browser storage." onclick="saveGame()">Save Game</button>
+                        <button class="btn btn-orange" data-action="loadGame" data-tooltip="Load a previously saved battle from browser storage." onclick="loadGame()">Load Game</button>
                     </div>
                 </div>
             </div>
@@ -868,7 +856,10 @@
                 electronic: true,
                 weapons: false,
                 fighters: false
-            }
+            },
+            previewOrders: null  // { type: 'speed'|'heading', delta: number } when hovering left half of order buttons
+            , ghostEditMode: false   // true when LMB on ghost to drag/rotate
+            , movementAnimations: null  // during movement phase: Map shipId -> { startPos, endPos, startFacing, endFacing, thrustRot, thrustMove, progress }
         };
 
         // UPDATE #6: New 6-Phase Turn System
@@ -4468,7 +4459,7 @@
                 this.class = shipClass;
                 this.position = position;
                 this.facing = facing;
-                this.speed = Math.floor(shipClass.maxSpeed / 3);
+                this.speed = 3; // Default initial speed; scenario may override in initializeScenario
                 this.team = team;
                 this.status = 'READY';
                 this.isIdentified = team === 'player';
@@ -4591,6 +4582,78 @@
                 return bearing;
             }
         };
+
+        // Thrust-based movement: RU per 1 Thrust by sector (relative to ship facing)
+        // Forward 90°: X=3; Left/Right 90°: X=2; Rear 90°: X=1
+        function getThrustRuPerPoint(ship, ghostPosition) {
+            if (!ship || !ghostPosition) return 3;
+            const bear = Coordinates.bearing(ship.position, ghostPosition);
+            let rel = (bear - ship.facing + 360) % 360;
+            if (rel <= 45 || rel >= 315) return 3;  // forward
+            if (rel >= 135 && rel <= 225) return 1;  // rear
+            return 2;  // left or right 90°
+        }
+        function thrustCostForMovement(ship, ghostPosition) {
+            const dist = Coordinates.distance(ship.position, ghostPosition);
+            if (dist <= 0) return 0;
+            const ruPer = getThrustRuPerPoint(ship, ghostPosition);
+            return Math.ceil(dist / ruPer);
+        }
+
+        // Get ghost position and facing for a ship (from orders or default end-of-move)
+        function getGhostForShip(ship) {
+            const orders = gameState.shipOrders.get(ship.id);
+            if (orders && orders.ghostPosition) {
+                return { position: orders.ghostPosition, facing: orders.ghostFacing != null ? orders.ghostFacing : ship.facing };
+            }
+            const ru = ship.speed > 0 ? ship.speed : 2; // default 2 RU ahead so ghost is visible/clickable
+            const move = Coordinates.toCartesian(ru, ship.facing);
+            return {
+                position: { x: ship.position.x + move.x, y: ship.position.y + move.y },
+                facing: ship.facing
+            };
+        }
+
+        // Remaining thrust for selected ship in planning (total - rotation - movement - roll)
+        function getRemainingThrust(ship) {
+            const total = (ship.class && ship.class.thrust) ? ship.class.thrust : 4;
+            const orders = gameState.shipOrders.get(ship.id) || {};
+            const rot = orders.thrustSpentOnRotation || 0;
+            const roll = (orders.maneuver === 'roll') ? 2 : 0;
+            const move = orders.thrustSpentOnMovement || 0;
+            return Math.max(0, total - rot - move - roll);
+        }
+
+        // Hit-test: is world point (wx, wy) on the ghost for this ship?
+        function isPointOnGhost(wx, wy, ship) {
+            if (!ship || ship.team !== 'player') return false;
+            const g = getGhostForShip(ship);
+            const d = Coordinates.distance(g.position, { x: wx, y: wy });
+            const hitRadius = (ship.class && ship.class.size) ? ship.class.size * 1.5 : 8;
+            return d <= hitRadius;
+        }
+
+        // Clamp desired ghost position to remaining thrust; update orders
+        function setGhostPositionFromDrag(ship, worldX, worldY) {
+            if (!ship || ship.team !== 'player') return;
+            let orders = gameState.shipOrders.get(ship.id);
+            if (!orders) { gameState.shipOrders.set(ship.id, orders = {}); }
+            const remaining = getRemainingThrust(ship);
+            const dist = Coordinates.distance(ship.position, { x: worldX, y: worldY });
+            if (dist <= 0) {
+                orders.ghostPosition = { x: ship.position.x, y: ship.position.y };
+                orders.thrustSpentOnMovement = 0;
+                return;
+            }
+            const ruPer = getThrustRuPerPoint(ship, { x: worldX, y: worldY });
+            const maxRu = remaining * ruPer;
+            const clamp = Math.min(dist, maxRu);
+            const unit = { x: (worldX - ship.position.x) / dist, y: (worldY - ship.position.y) / dist };
+            const ghostPos = { x: ship.position.x + unit.x * clamp, y: ship.position.y + unit.y * clamp };
+            orders.ghostPosition = ghostPos;
+            orders.thrustSpentOnMovement = Math.ceil(Coordinates.distance(ship.position, ghostPos) / ruPer);
+            if (typeof updateDisplay === 'function') updateDisplay();
+        }
 
         // Calculate dust/asteroid RU along line between two points (for combat modifiers)
         function calculateTerrainBetweenPoints(from, to) {
@@ -4925,7 +4988,7 @@
 
         function clearOrders() {
             if (!gameState.selectedShip) return;
-            
+            gameState.ghostEditMode = false;
             gameState.shipOrders.delete(gameState.selectedShip.id);
             updateOrderPreview();
             updateDisplay();
@@ -4934,34 +4997,22 @@
         function updateOrderPreview() {
             const preview = document.getElementById('orderPreview');
             const details = document.getElementById('previewDetails');
-            
-            if (!gameState.selectedShip) {
-                preview.style.display = 'none';
+            if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') {
+                if (preview) preview.style.display = 'none';
                 return;
             }
-            
-            const orders = gameState.shipOrders.get(gameState.selectedShip.id);
-            if (!orders) {
-                preview.style.display = 'none';
-                return;
-            }
-            
-            preview.style.display = 'block';
-            
             const ship = gameState.selectedShip;
-            const newSpeed = Math.max(0, Math.min(ship.class.maxSpeed, ship.speed + (orders.speedChange || 0)));
-            const newFacing = (ship.facing + (orders.courseChange || 0) + 360) % 360;
-            const movement = Coordinates.toCartesian(newSpeed, newFacing);
-            const newPosition = {
-                x: ship.position.x + movement.x,
-                y: ship.position.y + movement.y
-            };
-            
+            const orders = gameState.shipOrders.get(ship.id);
+            const g = getGhostForShip(ship);
+            const remaining = getRemainingThrust(ship);
+            const dist = Coordinates.distance(ship.position, g.position);
+            if (!preview) return;
+            preview.style.display = 'block';
             details.innerHTML = `
-                <p>New Position: (${newPosition.x.toFixed(1)}, ${newPosition.y.toFixed(1)})</p>
-                <p>New Facing: ${newFacing.toFixed(0)}°</p>
-                <p>New Speed: ${newSpeed}</p>
-                ${orders.maneuver ? `<p>Maneuver: ${orders.maneuver}</p>` : ''}
+                <p>End position: (${g.position.x.toFixed(1)}, ${g.position.y.toFixed(1)})</p>
+                <p>End facing: ${g.facing.toFixed(0)}°</p>
+                <p>Move: ${dist.toFixed(1)} RU | Thrust left: ${remaining}</p>
+                ${orders && orders.maneuver ? `<p>Maneuver: ${orders.maneuver}</p>` : ''}
             `;
         }
 
@@ -5208,29 +5259,31 @@
             const specialPanel = document.getElementById('specialPanel');
             const detectionPanel = document.getElementById('detectionPanel');
             
-            // Planning interface (includes maneuver and electronic warfare)
+            // Show panels but gray those not available this phase
             if (planningInterface) {
-                planningInterface.style.display = rules.planning ? 'block' : 'none';
+                planningInterface.style.display = 'block';
+                planningInterface.classList.toggle('phase-disabled', !rules.planning);
             }
-            
-            // Ship controls (maneuver orders)
             if (shipControls) {
-                shipControls.style.display = rules.maneuver ? 'block' : 'none';
+                shipControls.style.display = 'block';
+                shipControls.classList.toggle('phase-disabled', !rules.maneuver);
             }
-            
-            // Electronic warfare panel
             if (specialPanel) {
-                specialPanel.style.display = rules.electronic ? 'block' : 'none';
+                specialPanel.style.display = 'block';
+                specialPanel.classList.toggle('phase-disabled', !rules.electronic);
             }
-            
-            // Weapons panel
             if (weaponPanel) {
-                weaponPanel.style.display = rules.weapons ? 'block' : 'none';
+                weaponPanel.style.display = 'block';
+                weaponPanel.classList.toggle('phase-disabled', !rules.weapons);
             }
-            
-            // Detection panel (removed as per requirements)
             if (detectionPanel) {
-                detectionPanel.style.display = 'none';
+                detectionPanel.style.display = 'block';
+                detectionPanel.classList.toggle('phase-disabled', !rules.detection);
+            }
+            const fighterPanel = document.getElementById('fighterPanel');
+            if (fighterPanel) {
+                fighterPanel.style.display = 'block';
+                fighterPanel.classList.toggle('phase-disabled', !rules.fighters);
             }
         }
 
@@ -5268,22 +5321,30 @@
 
         // UPDATE #6: Phase execution functions
         function executeMovementPhase() {
-            // Execute all confirmed ship orders
+            // Start smooth curve animations: rotate over first (thrustRot/totalThrust) of move, then move to ghost
+            gameState.movementAnimations = new Map();
             gameState.ships.forEach(ship => {
                 if (ship.team === 'player' && ship.ordersConfirmed) {
                     const orders = gameState.shipOrders.get(ship.id);
-                    if (orders) {
-                        // Apply movement based on orders
-                        const movement = Coordinates.toCartesian(orders.speed, orders.facing);
-                        ship.position.x += movement.x;
-                        ship.position.y += movement.y;
-                        ship.speed = orders.speed;
-                        ship.facing = orders.facing;
+                    if (orders && orders.ghostPosition) {
+                        const thrustRot = orders.thrustSpentOnRotation || 0;
+                        const thrustMove = orders.thrustSpentOnMovement || 0;
+                        const total = thrustRot + thrustMove;
+                        gameState.movementAnimations.set(ship.id, {
+                            ship: ship,
+                            startPos: { x: ship.position.x, y: ship.position.y },
+                            endPos: { x: orders.ghostPosition.x, y: orders.ghostPosition.y },
+                            startFacing: ship.facing,
+                            endFacing: orders.facing != null ? orders.facing : orders.ghostFacing != null ? orders.ghostFacing : ship.facing,
+                            thrustRot: thrustRot,
+                            thrustMove: thrustMove,
+                            totalThrust: total,
+                            progress: 0,
+                            orders: orders
+                        });
                     }
                 }
             });
-            
-            console.log('All ships have executed movement orders');
         }
 
         function executeFighterMovement() {
@@ -5314,6 +5375,7 @@
         // startNewBattle consolidated - see implementation later in file (loads scenario, initializes phase state)
 
         function selectShip(ship) {
+            gameState.ghostEditMode = false;
             gameState.selectedShip = ship;
             updateDisplay();
             render();
@@ -5452,6 +5514,13 @@
             
             gameState.mousePos = { x: e.clientX, y: e.clientY };
             
+            // Ghost drag: update ghost position (thrust-limited)
+            if (gameState.ghostEditMode && gameState.selectedShip && gameState.selectedShip.team === 'player') {
+                setGhostPositionFromDrag(gameState.selectedShip, x, y);
+                render();
+                return;
+            }
+            
             // Find hovered ship
             const hoveredShip = gameState.ships.find(ship => {
                 const distance = Coordinates.distance(ship.position, { x, y });
@@ -5509,6 +5578,28 @@
                                 }
                                 <p><span style="color: #ff4444;">Fighters:</span> ${fighters.onboard}/${fighters.total}</p>
                             </div>
+                            ${(function(){
+                                const w = hoveredShip.class.weapons || {};
+                                const wt = typeof WEAPON_TYPES !== 'undefined' ? WEAPON_TYPES : {};
+                                let laserHtml = ''; let missileHtml = '';
+                                ['spinal','fore','aft','broadsides'].forEach(cat => {
+                                    const arr = cat === 'broadsides' ? (w.broadsides || []) : (w[cat] || []);
+                                    if (!Array.isArray(arr)) return;
+                                    arr.forEach(b => {
+                                        const type = b.type || '';
+                                        const info = wt[type];
+                                        const name = (info && info.name) ? info.name : type;
+                                        const range = (info && info.maxRange) ? info.maxRange + ' RU' : '';
+                                        const count = b.count != null ? b.count : 1;
+                                        laserHtml += `<p><span style="color: #ffaa00;">${(cat === 'broadsides' ? (b.arc || 'Broadside') : cat)}:</span> ${name} ×${count} ${range}</p>`;
+                                    });
+                                });
+                                if (w.missiles && (w.missiles.remaining != null || w.missiles.total)) {
+                                    const m = w.missiles; const t = m.type || 'Missile'; const mt = wt[m.type];
+                                    missileHtml = `<p><span style="color: #ff8800;">Missiles:</span> ${(mt && mt.name) || t} ${m.remaining != null ? m.remaining : ''}/${m.total || 0}</p>`;
+                                }
+                                return (laserHtml || missileHtml) ? `<div style="font-size: 0.7rem; margin-top: 0.5rem; border-top: 1px solid #333; padding-top: 0.35rem;"><strong style="color: #4da6ff;">Weapons</strong>${laserHtml}${missileHtml}</div>` : '';
+                            })()}
                         `}
                     `;
                     
@@ -5546,23 +5637,70 @@
             const x = (e.clientX - rect.left - canvas.width/2) / gameState.camera.zoom - gameState.camera.x;
             const y = (e.clientY - rect.top - canvas.height/2) / gameState.camera.zoom - gameState.camera.y;
             
-            if (gameState.ftlPlotMode && gameState.selectedShip && gameState.selectedShip.team === 'player') return; // Handled by enhanced handler
+            if (gameState.ftlPlotMode && gameState.selectedShip && gameState.selectedShip.team === 'player') return;
             
             const clickedShip = gameState.ships.find(ship => {
                 const distance = Coordinates.distance(ship.position, { x, y });
                 return distance <= ship.class.size && ship.status !== 'DESTROYED';
             });
             
+            // LMB again to lock ghost (exit ghost edit mode)
+            if (gameState.ghostEditMode) {
+                gameState.ghostEditMode = false;
+                updateDisplay();
+                render();
+                if (clickedShip) { selectShip(clickedShip); return; }
+                if (!clickedShip) { gameState.selectedShip = null; updateDisplay(); render(); return; }
+                return;
+            }
+            
+            // LMB on ghost (player ship selected, planning): enter ghost edit mode
+            if (gameState.phase === 'PLANNING' && gameState.selectedShip && gameState.selectedShip.team === 'player' && !clickedShip) {
+                if (isPointOnGhost(x, y, gameState.selectedShip)) {
+                    const ship = gameState.selectedShip;
+                    let orders = gameState.shipOrders.get(ship.id);
+                    if (!orders) gameState.shipOrders.set(ship.id, orders = {});
+                    const g = getGhostForShip(ship);
+                    orders.ghostPosition = { x: g.position.x, y: g.position.y };
+                    orders.ghostFacing = g.facing;
+                    orders.thrustSpentOnRotation = 0;
+                    orders.thrustSpentOnMovement = thrustCostForMovement(ship, g.position);
+                    gameState.ghostEditMode = true;
+                    updateDisplay();
+                    render();
+                    return;
+                }
+            }
+            
             if (clickedShip) {
                 selectShip(clickedShip);
+                return;
             }
+            // LMB on empty space: deselect
+            gameState.selectedShip = null;
+            gameState.ghostEditMode = false;
+            updateDisplay();
+            render();
         });
 
-        // Zoom controls
+        // Zoom controls; when ghost edit mode, wheel rotates ghost (15° = 1 Thrust) instead of zoom
         canvas.addEventListener('wheel', (e) => {
+            if (gameState.ghostEditMode && gameState.selectedShip && gameState.selectedShip.team === 'player') {
+                e.preventDefault();
+                const ship = gameState.selectedShip;
+                let orders = gameState.shipOrders.get(ship.id);
+                if (!orders) gameState.shipOrders.set(ship.id, orders = {});
+                const sign = e.deltaY > 0 ? -1 : 1;
+                const currentFacing = (orders.ghostFacing != null ? orders.ghostFacing : ship.facing) + sign * 15;
+                orders.ghostFacing = (currentFacing % 360 + 360) % 360;
+                orders.thrustSpentOnRotation = (orders.thrustSpentOnRotation || 0) + 1;
+                if (typeof updateDisplay === 'function') updateDisplay();
+                render();
+                return;
+            }
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            gameState.camera.zoom = Math.max(0.3, Math.min(2.0, gameState.camera.zoom + delta));
+            gameState.camera.zoom = Math.max(0.3, Math.min(15.0, gameState.camera.zoom + delta));
             render();
         });
         }
@@ -6917,22 +7055,19 @@
             ctx.strokeStyle = ship.team === 'player' ? '#4da6ff' : '#ff4444';
             ctx.lineWidth = 2;
             
-            // FALLBACK: Simple ship shape if enhanced drawing fails
+            // Ship shape by size (elongated, bow-forward; not diamond)
             try {
-                if (ship.class.name && (ship.class.name.includes('Dreadnought') || ship.class.name.includes('Battleship'))) {
-                    // Large capital ship design
+                const sz = ship.class.size || 10;
+                if (sz >= 10) {
                     drawCapitalShip(width, height);
-                } else if (ship.class.name && ship.class.name.includes('Cruiser')) {
-                    // Medium ship design
+                } else if (sz >= 5) {
                     drawCruiser(width, height);
                 } else {
-                    // Small ship design
                     drawEscort(width, height);
                 }
             } catch (error) {
                 console.warn('Enhanced ship drawing failed, using fallback:', error);
-                // Fallback: Simple rectangle
-                ctx.fillRect(-width/2, -height/2, width, height);
+                drawEscort(width, height);
             }
             
             // Stealth effect
@@ -6945,6 +7080,20 @@
                 ctx.stroke();
             }
             ctx.fill();
+            
+            // Clear forward direction: bow arrow (point is forward)
+            ctx.strokeStyle = '#ffff00';
+            ctx.fillStyle = ship.team === 'player' ? '#aaffaa' : '#ffcc66';
+            ctx.lineWidth = 2;
+            const bowLen = Math.max(size * 0.5, 6);
+            ctx.beginPath();
+            ctx.moveTo(0, -height * 0.55);
+            ctx.lineTo(-width * 0.25, -height * 0.55 + bowLen);
+            ctx.lineTo(0, -height * 0.55 + bowLen * 0.6);
+            ctx.lineTo(width * 0.25, -height * 0.55 + bowLen);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
             
             // Engine glow
             if (ship.speed > 0) {
@@ -6970,48 +7119,99 @@
             // Ship status indicators
             drawStatusIndicators(ship, size);
             
-            // DEBUG: Draw ship ID and position
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '8px monospace';
-            ctx.fillText(ship.id, -size/2, size/2 + 10);
+            ctx.restore();
             
+            // Labels always upright (no rotation) so text is readable
+            ctx.save();
+            ctx.translate(ship.position.x, ship.position.y);
+            ctx.fillStyle = ship.team === 'player' ? '#4da6ff' : '#ff6666';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.shadowColor = '#000000';
+            ctx.shadowBlur = 2;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            if (ship.shipName) ctx.fillText(ship.shipName, 0, -size - 6);
+            ctx.fillStyle = ship.team === 'player' ? '#00ff00' : '#ffaa00';
+            ctx.font = 'bold 10px monospace';
+            ctx.textBaseline = 'top';
+            if (ship.classAbbreviation) ctx.fillText(`[${ship.classAbbreviation}]`, 0, size + 4);
+            ctx.font = '8px monospace';
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillText(ship.id || '', 0, size + 14);
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.restore();
+        }
+
+        // Ghost: end-of-movement preview (thrust-based planning)
+        function drawGhostAt(position, facing, shipClass) {
+            if (!position || !shipClass) return;
+            ctx.save();
+            ctx.translate(position.x, position.y);
+            ctx.rotate((facing * Math.PI) / 180);
+            const size = shipClass.size || 10;
+            const width = size * 0.6;
+            const height = size;
+            ctx.strokeStyle = 'rgba(0, 255, 200, 0.9)';
+            ctx.fillStyle = 'rgba(0, 255, 200, 0.15)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            try {
+                if (size >= 10) drawCapitalShip(width, height);
+                else if (size >= 5) drawCruiser(width, height);
+                else drawEscort(width, height);
+            } catch (_) { drawEscort(width, height); }
+            ctx.fill();
+            ctx.stroke();
+            ctx.setLineDash([]);
             ctx.restore();
         }
 
         function drawCapitalShip(width, height) {
-            // Dreadnought/Battleship profile
+            // Capital ship: long bow, broad stern (no diamond)
             ctx.beginPath();
             ctx.moveTo(0, -height/2);
-            ctx.lineTo(width/3, -height/3);
-            ctx.lineTo(width/2, 0);
-            ctx.lineTo(width/3, height/3);
-            ctx.lineTo(0, height/2);
-            ctx.lineTo(-width/4, height/4);
-            ctx.lineTo(-width/2, 0);
-            ctx.lineTo(-width/4, -height/4);
+            ctx.lineTo(width * 0.45, -height * 0.25);
+            ctx.lineTo(width * 0.5, 0);
+            ctx.lineTo(width * 0.45, height * 0.25);
+            ctx.lineTo(width * 0.3, height/2);
+            ctx.lineTo(0, height * 0.55);
+            ctx.lineTo(-width * 0.3, height/2);
+            ctx.lineTo(-width * 0.45, height * 0.25);
+            ctx.lineTo(-width * 0.5, 0);
+            ctx.lineTo(-width * 0.45, -height * 0.25);
             ctx.closePath();
         }
 
         function drawCruiser(width, height) {
-            // Cruiser profile
+            // Cruiser: pointed bow, broad stern
             ctx.beginPath();
             ctx.moveTo(0, -height/2);
-            ctx.lineTo(width/4, -height/4);
-            ctx.lineTo(width/2, 0);
-            ctx.lineTo(width/4, height/4);
-            ctx.lineTo(0, height/2);
-            ctx.lineTo(-width/3, height/6);
-            ctx.lineTo(-width/3, -height/6);
+            ctx.lineTo(width * 0.4, -height * 0.2);
+            ctx.lineTo(width * 0.45, height * 0.15);
+            ctx.lineTo(width * 0.35, height/2);
+            ctx.lineTo(0, height * 0.55);
+            ctx.lineTo(-width * 0.35, height/2);
+            ctx.lineTo(-width * 0.45, height * 0.15);
+            ctx.lineTo(-width * 0.4, -height * 0.2);
             ctx.closePath();
         }
 
         function drawEscort(width, height) {
-            // Small ship profile
+            // Small ship: pointed bow, wider stern (not a diamond)
+            const bow = height * 0.5;
+            const stern = height * 0.4;
             ctx.beginPath();
-            ctx.moveTo(0, -height/2);
-            ctx.lineTo(width/4, 0);
-            ctx.lineTo(0, height/2);
-            ctx.lineTo(-width/4, 0);
+            ctx.moveTo(0, -bow);
+            ctx.lineTo(width * 0.35, -stern * 0.3);
+            ctx.lineTo(width * 0.4, stern * 0.5);
+            ctx.lineTo(width * 0.2, stern);
+            ctx.lineTo(-width * 0.2, stern);
+            ctx.lineTo(-width * 0.4, stern * 0.5);
+            ctx.lineTo(-width * 0.35, -stern * 0.3);
             ctx.closePath();
         }
 
@@ -7061,6 +7261,60 @@
             }
         }
 
+        function drawWeaponArcsAndRanges(ship) {
+            if (!ship || !ship.class || !ship.class.weapons) return;
+            const wx = ship.position.x, wy = ship.position.y;
+            const facingRad = (ship.facing * Math.PI) / 180;
+            const arcsByKey = { spinal: 'SPINAL', fore: 'FORE', aft: 'AFT', left_broadside: 'LEFT_BROADSIDE', right_broadside: 'RIGHT_BROADSIDE' };
+            const arcColors = { SPINAL: 'rgba(255,100,0,0.25)', FORE: 'rgba(0,200,255,0.2)', AFT: 'rgba(150,150,150,0.2)', LEFT_BROADSIDE: 'rgba(255,255,0,0.2)', RIGHT_BROADSIDE: 'rgba(255,200,0,0.2)' };
+            const strokeColors = { SPINAL: '#ff6600', FORE: '#00aaff', AFT: '#888', LEFT_BROADSIDE: '#ccaa00', RIGHT_BROADSIDE: '#ddbb00' };
+            function drawArc(centerX, centerY, range, startAngleDeg, spanDeg, fillStyle, strokeStyle) {
+                const start = ((ship.facing + startAngleDeg) * Math.PI) / 180;
+                const span = (spanDeg * Math.PI) / 180;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, range, start - span/2, start + span/2);
+                ctx.closePath();
+                ctx.fillStyle = fillStyle;
+                ctx.fill();
+                ctx.strokeStyle = strokeStyle;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            ['spinal','fore','aft'].forEach(cat => {
+                const arr = ship.class.weapons[cat];
+                if (!Array.isArray(arr)) return;
+                arr.forEach(w => {
+                    const arcKey = arcsByKey[w.arc] || (cat === 'spinal' ? 'SPINAL' : (cat === 'fore' ? 'FORE' : 'AFT'));
+                    const arcDef = WEAPON_ARCS[arcKey] || WEAPON_ARCS.FORE;
+                    const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
+                    const range = (wt && wt.maxRange) ? wt.maxRange : 20;
+                    const fillStyle = arcColors[arcKey] || 'rgba(100,100,255,0.15)';
+                    const strokeStyle = strokeColors[arcKey] || '#666';
+                    drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, fillStyle, strokeStyle);
+                });
+            });
+            (ship.class.weapons.broadsides || []).forEach(w => {
+                const arcKey = (w.arc && w.arc.includes('left')) ? 'LEFT_BROADSIDE' : 'RIGHT_BROADSIDE';
+                const arcDef = WEAPON_ARCS[arcKey];
+                const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
+                const range = (wt && wt.maxRange) ? wt.maxRange : 20;
+                drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, arcColors[arcKey], strokeColors[arcKey]);
+            });
+        }
+        
+        function drawSensorArc(ship) {
+            if (!ship || typeof DetectionSystem === 'undefined' || !DetectionSystem.calculateSensorRange) return;
+            const r = DetectionSystem.calculateSensorRange(ship, ship.sensorMode || 'PASSIVE');
+            ctx.strokeStyle = ship.sensorMode === 'ACTIVE' ? 'rgba(0,255,200,0.5)' : 'rgba(0,180,180,0.35)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(ship.position.x, ship.position.y, r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
         function drawShipDestroyed(ship) {
             ctx.save();
             ctx.translate(ship.position.x, ship.position.y);
@@ -8677,8 +8931,7 @@
                     0,
                     'player'
                 );
-                
-                // Validate ship was created properly
+                ship.speed = (scenario.setup && scenario.setup.initialSpeed != null) ? scenario.setup.initialSpeed : 3;
                 if (ship && ship.position && ship.class) {
                     gameState.ships.push(ship);
                     console.log(`Player ship created: ${ship.id} at (${ship.position.x}, ${ship.position.y})`);
@@ -8708,8 +8961,7 @@
                     180,
                     'enemy'
                 );
-                
-                // Validate ship was created properly
+                ship.speed = (scenario.setup && scenario.setup.initialSpeed != null) ? scenario.setup.initialSpeed : 3;
                 if (ship && ship.position && ship.class) {
                     gameState.ships.push(ship);
                     console.log(`Enemy ship created: ${ship.id} at (${ship.position.x}, ${ship.position.y})`);
@@ -8924,8 +9176,8 @@
 
         function startNewBattle() {
             console.log('Starting new battle...');
-            
-            // Consolidated phase state initialization
+            gameState.ghostEditMode = false;
+            gameState.movementAnimations = null;
             gameState.currentPhase = 0;
             gameState.phase = 'PLANNING';
             gameState.subphase = 'A';
@@ -9113,6 +9365,7 @@
             });
             
             panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
         // Update missile loadout slider
@@ -10157,60 +10410,37 @@
             }
         }
 
-        // UPDATE #6: Enhanced Confirm Orders function with phase integration
+        // UPDATE #6: Confirm Orders – lock ghost position/facing and thrust (no speed limit)
         function confirmOrders() {
             if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
             if (gameState.phase !== 'PLANNING') {
                 alert('Orders can only be confirmed during Planning Phase');
                 return;
             }
+            gameState.ghostEditMode = false;
 
             const ship = gameState.selectedShip;
-            
-            // Mark ship as having confirmed orders
             ship.ordersConfirmed = true;
             ship.status = 'ORDERS_CONFIRMED';
             
-            // Store orders - apply speedChange and courseChange to get actual speed/facing
-            if (!gameState.shipOrders.has(ship.id)) {
-                gameState.shipOrders.set(ship.id, {});
-            }
-            
+            if (!gameState.shipOrders.has(ship.id)) gameState.shipOrders.set(ship.id, {});
             const orders = gameState.shipOrders.get(ship.id);
-            const speedChange = orders.speedChange || 0;
-            const courseChange = orders.courseChange || 0;
-            const newSpeed = Math.max(0, Math.min(ship.class.maxSpeed || 12, ship.speed + speedChange));
-            const newFacing = (ship.facing + courseChange + 360) % 360;
-            if (orders.maneuver === 'flip') {
-                orders.facing = (ship.facing + 180) % 360;
-                orders.speed = ship.speed;
-            } else if (orders.maneuver === 'roll') {
-                orders.facing = ship.facing;
-                orders.speed = ship.speed;
-            } else {
-                orders.speed = newSpeed;
-                orders.facing = newFacing;
-            }
+            const g = getGhostForShip(ship);
+            orders.ghostPosition = { x: g.position.x, y: g.position.y };
+            orders.ghostFacing = g.facing;
+            orders.speed = Math.round(Coordinates.distance(ship.position, g.position) * 10) / 10;
+            orders.facing = g.facing;
+            orders.thrustSpentOnRotation = orders.thrustSpentOnRotation || 0;
+            orders.thrustSpentOnMovement = orders.thrustSpentOnMovement ?? thrustCostForMovement(ship, g.position);
             orders.sensorMode = ship.sensorMode;
             orders.isStealthed = ship.isStealthed;
             orders.confirmed = true;
             orders.timestamp = Date.now();
-            orders.subphase = gameState.subphase;
             
-            // Visual feedback
-            alert(`Orders confirmed for ${ship.shipName}\nSpeed: ${orders.speed}\nFacing: ${orders.facing}°`);
-            if (typeof audioSystem !== 'undefined') {
-                audioSystem.playSound('hit', 0.3);
-            }
-            
-            // Check if all ships have confirmed orders
+            if (typeof audioSystem !== 'undefined') audioSystem.playSound('hit', 0.3);
             checkAllOrdersConfirmed();
-            
             updateDisplay();
-
-            if (gameState.tutorial && gameState.tutorial.active) {
-                advanceTutorial('confirmOrders');
-            }
+            if (gameState.tutorial && gameState.tutorial.active) advanceTutorial('confirmOrders');
         }
 
         // Check if all player ships have confirmed orders - Fixed for simple phase system
@@ -11128,6 +11358,32 @@
                             } else fn();
                         }
                     });
+                    // Right-half hover: show button explanation tooltip; left-half: preview order change
+                    var ctip = document.getElementById('controlTooltip');
+                    if (ctip) {
+                        controls.addEventListener('mousemove', function(e) {
+                            var btn = e.target.closest('button[data-tooltip], button[data-action]');
+                            var rect = btn ? btn.getBoundingClientRect() : null;
+                            var rightHalf = rect && (e.clientX - rect.left) > (rect.width / 2);
+                            if (btn && btn.getAttribute('data-tooltip') && rightHalf) {
+                                ctip.textContent = btn.getAttribute('data-tooltip');
+                                ctip.style.display = 'block';
+                                ctip.style.left = (e.clientX + 14) + 'px';
+                                ctip.style.top = (e.clientY + 8) + 'px';
+                                gameState.previewOrders = null;
+                            } else {
+                                ctip.style.display = 'none';
+                                if (btn && !rightHalf && gameState.selectedShip && (btn.getAttribute('data-action') === 'setSpeedChange' || btn.getAttribute('data-action') === 'setHeadingChange')) {
+                                    var arg = btn.getAttribute('data-arg');
+                                    if (arg !== null && arg !== '') {
+                                        var n = parseInt(arg, 10);
+                                        if (!isNaN(n)) gameState.previewOrders = { type: btn.getAttribute('data-action') === 'setSpeedChange' ? 'speed' : 'heading', delta: n };
+                                    } else gameState.previewOrders = null;
+                                } else if (!btn || rightHalf) gameState.previewOrders = null;
+                            }
+                        });
+                        controls.addEventListener('mouseleave', function() { if (ctip) ctip.style.display = 'none'; gameState.previewOrders = null; });
+                    }
                 }
             } catch (err) {
                 console.error('Game init error:', err);
@@ -11251,17 +11507,14 @@
 
         function setManeuver(maneuverType) {
             if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
-            
-            const ship = gameState.selectedShip;
-            switch (maneuverType) {
-                case 'flip':
-                    ship.facing = (ship.facing + 180) % 360;
-                    break;
-                case 'roll':
-                    // Evasive maneuver - temporary defense bonus
-                    ship.isRolling = true;
-                    ship.rollUntil = gameState.currentTurn + 1;
-                    break;
+            if (gameState.phase === 'PLANNING' && maneuverType === 'roll') {
+                const currentOrders = gameState.shipOrders.get(gameState.selectedShip.id) || {};
+                currentOrders.maneuver = 'roll';
+                gameState.shipOrders.set(gameState.selectedShip.id, currentOrders);
+            } else if (maneuverType === 'roll') {
+                const ship = gameState.selectedShip;
+                ship.isRolling = true;
+                ship.rollUntil = gameState.currentTurn + 1;
             }
             updateDisplay();
         }
@@ -11628,7 +11881,7 @@ If camera gets stuck, press 'C' to reset!
                 case '+':
                 case '=':
                     // Zoom in
-                    gameState.camera.zoom = Math.min(3.0, gameState.camera.zoom * 1.2);
+                    gameState.camera.zoom = Math.min(15.0, gameState.camera.zoom * 1.2);
                     break;
                 case '-':
                 case '_':
@@ -11665,9 +11918,25 @@ If camera gets stuck, press 'C' to reset!
             if (!gameState.camera.zoom || gameState.camera.zoom <= 0 || isNaN(gameState.camera.zoom)) {
                 gameState.camera.zoom = 1.0;
             }
-            gameState.camera.zoom = Math.max(0.2, Math.min(3.0, gameState.camera.zoom));
+            gameState.camera.zoom = Math.max(0.2, Math.min(15.0, gameState.camera.zoom));
             
             try {
+                // Advance movement animations (smooth curve: rotate over first thrust fraction of move)
+                if (gameState.movementAnimations && gameState.movementAnimations.size > 0) {
+                    const step = 0.015;
+                    gameState.movementAnimations.forEach((anim, id) => {
+                        anim.progress = Math.min(1, anim.progress + step);
+                        if (anim.progress >= 1) {
+                            anim.ship.position.x = anim.endPos.x;
+                            anim.ship.position.y = anim.endPos.y;
+                            anim.ship.facing = anim.endFacing;
+                            if (anim.orders && anim.orders.speed != null) anim.ship.speed = anim.orders.speed;
+                            gameState.movementAnimations.delete(id);
+                        }
+                    });
+                    if (gameState.movementAnimations.size === 0) gameState.movementAnimations = null;
+                }
+                
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 ctx.save();
@@ -11680,13 +11949,72 @@ If camera gets stuck, press 'C' to reset!
                 // Draw enhanced terrain
                 drawEnhancedTerrain();
                 
-                // Draw ships with enhanced graphics
+                // Draw ships (use interpolated pos/facing when in movement animation)
                 if (gameState.ships && Array.isArray(gameState.ships)) {
                     gameState.ships.forEach(ship => {
-                        if (ship && ship.position) {
+                        if (!ship || !ship.position) return;
+                        const anim = gameState.movementAnimations && gameState.movementAnimations.get(ship.id);
+                        if (anim) {
+                            const t = anim.progress;
+                            const interpPos = {
+                                x: anim.startPos.x + (anim.endPos.x - anim.startPos.x) * t,
+                                y: anim.startPos.y + (anim.endPos.y - anim.startPos.y) * t
+                            };
+                            // Heading changes always applied pro-rata: rotate over first (thrustRot/totalThrust) of move
+                            const tot = anim.totalThrust || 1;
+                            const tRot = tot > 0 ? anim.thrustRot / tot : 1;
+                            const interpFacing = t <= tRot
+                                ? anim.startFacing + (anim.endFacing - anim.startFacing) * (tRot > 0 ? t / tRot : 1)
+                                : anim.endFacing;
+                            drawEnhancedShip({ ...ship, position: interpPos, facing: interpFacing });
+                        } else {
                             drawEnhancedShip(ship);
                         }
                     });
+                }
+                
+                // Selected ship: weapon arcs/ranges and sensor range (on top of ships)
+                if (gameState.selectedShip && gameState.selectedShip.position) {
+                    drawWeaponArcsAndRanges(gameState.selectedShip);
+                    drawSensorArc(gameState.selectedShip);
+                }
+                
+                // Ghost: end-of-movement position and remaining Thrust (Planning, player only)
+                if (gameState.phase === 'PLANNING' && gameState.selectedShip && gameState.selectedShip.team === 'player' && gameState.selectedShip.position) {
+                    const ship = gameState.selectedShip;
+                    const g = getGhostForShip(ship);
+                    drawGhostAt(g.position, g.facing, ship.class);
+                    const remaining = getRemainingThrust(ship);
+                    const flash = gameState.ghostEditMode && remaining <= 0 && (Date.now() % 600 < 300);
+                    ctx.save();
+                    ctx.translate(g.position.x, g.position.y);
+                    ctx.fillStyle = flash ? '#ff2222' : 'rgba(0, 255, 200, 0.95)';
+                    ctx.font = 'bold 12px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('Thrust: ' + remaining, 0, -((ship.class && ship.class.size) ? ship.class.size : 10) - 4);
+                    ctx.restore();
+                }
+                
+                // Preview order change when hovering left half of speed/heading buttons
+                if (gameState.previewOrders && gameState.selectedShip && gameState.selectedShip.position) {
+                    const ship = gameState.selectedShip;
+                    const ord = gameState.shipOrders.get(ship.id);
+                    let len = 8, angle = ship.facing * Math.PI / 180;
+                    if (gameState.previewOrders.type === 'speed') {
+                        const base = (ord && ord.speed != null) ? ord.speed : ship.speed;
+                        len = Math.max(4, (base + gameState.previewOrders.delta) * 2.5);
+                    } else {
+                        angle = (ship.facing + gameState.previewOrders.delta) * Math.PI / 180;
+                    }
+                    ctx.strokeStyle = 'rgba(0,255,200,0.8)';
+                    ctx.setLineDash([4, 4]);
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(ship.position.x, ship.position.y);
+                    ctx.lineTo(ship.position.x + Math.sin(angle) * len, ship.position.y - Math.cos(angle) * len);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                 }
                 
                 // Draw weapon fire effects
@@ -11716,6 +12044,7 @@ If camera gets stuck, press 'C' to reset!
 
         // Ship selection function
         function selectShip(ship) {
+            gameState.ghostEditMode = false;
             gameState.selectedShip = ship;
             updateDisplay();
             
