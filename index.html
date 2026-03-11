@@ -1186,50 +1186,54 @@
             }
         }
         
-        // Definitive Missile Types with To Hit%/Range/Damage format
-        // Missile types are attached to window to avoid duplicate-const issues across builds
+        // Definitive Missile Types: ranges ×20 (proportionate to 12 RU Leviathan); travelTime = turns to max range (proportionate)
         window.MISSILE_TYPES = window.MISSILE_TYPES || {
             STANDARD: { 
                 name: 'Standard Missile',
                 hitChance: 90,
-                maxRange: 25, 
+                maxRange: 500, 
                 damage: 3,
                 cost: 2,
-                defensiveBonus: 1  // +1 turret bonus when used defensively
+                defensiveBonus: 1,
+                travelTime: 1   // turns to reach max range (proportionate to range scale)
             },
             HEAVY: { 
                 name: 'Heavy Missile',
                 hitChance: 85,
-                maxRange: 30, 
+                maxRange: 600, 
                 damage: 5,
                 cost: 4,
-                defensiveBonus: 2
+                defensiveBonus: 2,
+                travelTime: 1
             },
             TYPE_E_MISSILE: { 
                 name: 'Type E Missile',
                 hitChance: 90,
-                maxRange: 35, 
+                maxRange: 700, 
                 damage: 6,
                 cost: 6,
-                defensiveBonus: 3
+                defensiveBonus: 3,
+                travelTime: 1
             },
             HUNTER_KILLER: { 
                 name: 'Hunter-Killer Missile',
                 hitChance: 95,
-                maxRange: 30, 
+                maxRange: 600, 
                 damage: 3,
                 cost: 3,
                 defensiveBonus: 2,
-                special: 'high_accuracy'
+                special: 'high_accuracy',
+                travelTime: 1
             },
             NUCLEAR: { 
                 name: 'Nuclear Warhead',
                 hitChance: 75,
-                maxRange: 20, 
+                maxRange: 400, 
                 damage: 15,
                 cost: 8,
                 defensiveBonus: 1,
-                special: 'area_effect'
+                special: 'area_effect',
+                travelTime: 1
             }
         };
 
@@ -3073,126 +3077,125 @@
         // DEFINITIVE RENEGADE LEGION: LEVIATHAN WEAPON TYPES
         // =============================================
         
-        // Definitive weapon types with authentic RL:L X/Y notation
+        // Scale factor: Leviathan 12 RU long; broadside/spinal ranges ×20 for proportionate scale
+        const WEAPON_RANGE_SCALE = 20;
+        // Definitive weapon types with authentic RL:L X/Y notation (ranges ×20 vs 12 RU ship length)
         const WEAPON_TYPES = {
-            // LASER WEAPONS - X/Y format (Range/Damage)
+            // LASER WEAPONS - X/Y format (Range/Damage), maxRange ×20
             'LASER_37_5_25': { 
                 name: '37.5/25 Laser Battery', 
-                maxRange: 20,  // 37.5 converts to 20 RU
-                damage: 5,     // 25 converts to 5 damage
+                maxRange: 400, 
+                damage: 5,
                 type: 'LASER'
             },
             'LASER_37_5_20': { 
                 name: '37.5/20 Laser Battery', 
-                maxRange: 20,  // 37.5 converts to 20 RU
-                damage: 4,     // 20 converts to 4 damage
+                maxRange: 400, 
+                damage: 4,
                 type: 'LASER'
             },
             'LASER_30_20': { 
                 name: '30/20 Laser Battery', 
-                maxRange: 16,  // 30 converts to 16 RU
-                damage: 4,     // 20 converts to 4 damage
+                maxRange: 320, 
+                damage: 4,
                 type: 'LASER'
             },
             'LASER_22_5_15': { 
                 name: '22.5/15 Laser Battery', 
-                maxRange: 12,  // 22.5 converts to 12 RU
-                damage: 3,     // 15 converts to 3 damage
+                maxRange: 240, 
+                damage: 3,
                 type: 'LASER'
             },
             'LASER_22_5_5': { 
                 name: '22.5/5 Laser Battery', 
-                maxRange: 12,  // 22.5 converts to 12 RU
-                damage: 1,     // 5 converts to 1 damage
+                maxRange: 240, 
+                damage: 1,
                 type: 'LASER'
             },
             'LASER_15_10': { 
                 name: '15/10 Laser Battery', 
-                maxRange: 8,   // 15 converts to 8 RU
-                damage: 2,     // 10 converts to 2 damage
+                maxRange: 160, 
+                damage: 2,
                 type: 'LASER'
             },
             'LASER_7_5_5': { 
                 name: '7.5/5 Laser Battery', 
-                maxRange: 4,   // 7.5 converts to 4 RU
-                damage: 1,     // 5 converts to 1 damage
+                maxRange: 80, 
+                damage: 1,
                 type: 'LASER'
             },
-            
-            // SPINAL MOUNT WEAPONS
+            // SPINAL MOUNT WEAPONS, maxRange ×20
             'TYPE_A_SPINAL': { 
                 name: 'Type A Spinal Mount', 
-                maxRange: 80, 
-                damage: 120,   // TBD in rules but estimated
+                maxRange: 1600, 
+                damage: 120,
                 type: 'SPINAL'
             },
             'TYPE_B_SPINAL': { 
                 name: 'Type B Spinal Mount', 
-                maxRange: 120, 
-                damage: 160,   // TBD in rules but estimated
+                maxRange: 2400, 
+                damage: 160,
                 type: 'SPINAL'
             },
             'TYPE_C_SPINAL': { 
                 name: 'Type C Spinal Mount', 
-                maxRange: 160, 
-                damage: 200,   // TBD in rules but estimated
+                maxRange: 3200, 
+                damage: 200,
                 type: 'SPINAL'
             },
             'TYPE_D_SPINAL': { 
                 name: 'Type D Spinal Mount', 
-                maxRange: 200, 
-                damage: 220,   // TBD in rules but estimated
+                maxRange: 4000, 
+                damage: 220,
                 type: 'SPINAL'
             },
             'TYPE_E_SPINAL': { 
                 name: 'Type E Spinal Mount', 
-                maxRange: 16, 
-                damage: 240,   // Definitive from rules
+                maxRange: 320, 
+                damage: 240,
                 type: 'SPINAL'
             },
-            
-            // LEGACY COMPATIBILITY WEAPONS (map to X/Y system)
+            // LEGACY COMPATIBILITY WEAPONS
             'LASER_HEAVY': { 
                 name: 'Heavy Laser Cannon', 
-                maxRange: 16, 
+                maxRange: 320, 
                 damage: 4, 
                 type: 'LASER',
                 legacy: 'LASER_30_20'
             },
             'LASER_MEDIUM': { 
                 name: 'Medium Laser Cannon', 
-                maxRange: 12, 
+                maxRange: 240, 
                 damage: 3, 
                 type: 'LASER',
                 legacy: 'LASER_22_5_15'
             },
             'LASER_LIGHT': { 
                 name: 'Light Laser Cannon', 
-                maxRange: 8, 
+                maxRange: 160, 
                 damage: 2, 
                 type: 'LASER',
                 legacy: 'LASER_15_10'
             },
             'LASER_MEGA': { 
                 name: 'Mega Laser Cannon', 
-                maxRange: 20, 
+                maxRange: 400, 
                 damage: 5, 
                 type: 'LASER',
                 legacy: 'LASER_37_5_25'
             },
-            
-            // MISSILE WEAPONS (To Hit%/Range/Damage format)
+            // MISSILE WEAPONS (ranges ×20; resolved in Firing phase)
             'STANDARD_MISSILE': { 
                 name: 'Standard Missile', 
                 hitChance: 90, 
-                maxRange: 25, 
+                maxRange: 500, 
                 damage: 3, 
                 type: 'MISSILE'
             },
             'TYPE_E_MISSILE': { 
                 name: 'Type E Missile', 
                 hitChance: 90, 
-                maxRange: 30, 
+                maxRange: 600, 
                 damage: 5, 
                 type: 'MISSILE'
             }
@@ -5295,6 +5298,7 @@
                     break;
                     
                 case 'MOVEMENT':
+                    // Movement only: no automatic weapon fire (firing is in FIRING phase only)
                     console.log('Movement Phase - Ships execute movement orders');
                     executeMovementPhase();
                     break;
@@ -5514,8 +5518,8 @@
             
             gameState.mousePos = { x: e.clientX, y: e.clientY };
             
-            // Ghost drag: update ghost position (thrust-limited)
-            if (gameState.ghostEditMode && gameState.selectedShip && gameState.selectedShip.team === 'player') {
+            // Ghost drag only when left button (skip when middle/right so pan works)
+            if ((e.buttons === 1) && gameState.ghostEditMode && gameState.selectedShip && gameState.selectedShip.team === 'player') {
                 setGhostPositionFromDrag(gameState.selectedShip, x, y);
                 render();
                 return;
@@ -5700,7 +5704,7 @@
             }
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            gameState.camera.zoom = Math.max(0.3, Math.min(15.0, gameState.camera.zoom + delta));
+            gameState.camera.zoom = Math.max(0.3, Math.min(75.0, gameState.camera.zoom + delta));
             render();
         });
         }
@@ -7081,16 +7085,16 @@
             }
             ctx.fill();
             
-            // Clear forward direction: bow arrow (point is forward)
-            ctx.strokeStyle = '#ffff00';
-            ctx.fillStyle = ship.team === 'player' ? '#aaffaa' : '#ffcc66';
-            ctx.lineWidth = 2;
-            const bowLen = Math.max(size * 0.5, 6);
+            // Small yellow caret at bow (forward point), inside ship outline
+            ctx.fillStyle = '#ffff00';
+            ctx.strokeStyle = '#ccaa00';
+            ctx.lineWidth = 1;
+            const caretSize = Math.max(2, Math.min(size * 0.15, 4));
             ctx.beginPath();
-            ctx.moveTo(0, -height * 0.55);
-            ctx.lineTo(-width * 0.25, -height * 0.55 + bowLen);
-            ctx.lineTo(0, -height * 0.55 + bowLen * 0.6);
-            ctx.lineTo(width * 0.25, -height * 0.55 + bowLen);
+            ctx.moveTo(0, -height * 0.48);
+            ctx.lineTo(-caretSize, -height * 0.48 + caretSize * 1.5);
+            ctx.lineTo(0, -height * 0.48 + caretSize);
+            ctx.lineTo(caretSize, -height * 0.48 + caretSize * 1.5);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
@@ -7146,8 +7150,8 @@
             ctx.restore();
         }
 
-        // Ghost: end-of-movement preview (thrust-based planning)
-        function drawGhostAt(position, facing, shipClass) {
+        // Ghost: end-of-movement preview (thrust-based planning). Pulse when selected and not locked.
+        function drawGhostAt(position, facing, shipClass, pulse) {
             if (!position || !shipClass) return;
             ctx.save();
             ctx.translate(position.x, position.y);
@@ -7155,8 +7159,16 @@
             const size = shipClass.size || 10;
             const width = size * 0.6;
             const height = size;
-            ctx.strokeStyle = 'rgba(0, 255, 200, 0.9)';
-            ctx.fillStyle = 'rgba(0, 255, 200, 0.15)';
+            let opacity = 0.9;
+            let fillOpacity = 0.15;
+            if (pulse) {
+                const t = (Date.now() / 1200) % 1;
+                const p = 0.5 + 0.4 * Math.sin(t * Math.PI * 2);
+                opacity = 0.5 + p * 0.5;
+                fillOpacity = 0.08 + p * 0.15;
+            }
+            ctx.strokeStyle = `rgba(0, 255, 200, ${opacity})`;
+            ctx.fillStyle = `rgba(0, 255, 200, ${fillOpacity})`;
             ctx.lineWidth = 2;
             ctx.setLineDash([6, 4]);
             try {
@@ -7261,19 +7273,22 @@
             }
         }
 
+        // Arc radius = weapon maxRange (ranges already ×20 for 12 RU Leviathan scale)
+        const WEAPON_ARC_DISPLAY_SCALE = 1;
         function drawWeaponArcsAndRanges(ship) {
             if (!ship || !ship.class || !ship.class.weapons) return;
             const wx = ship.position.x, wy = ship.position.y;
-            const facingRad = (ship.facing * Math.PI) / 180;
             const arcsByKey = { spinal: 'SPINAL', fore: 'FORE', aft: 'AFT', left_broadside: 'LEFT_BROADSIDE', right_broadside: 'RIGHT_BROADSIDE' };
             const arcColors = { SPINAL: 'rgba(255,100,0,0.25)', FORE: 'rgba(0,200,255,0.2)', AFT: 'rgba(150,150,150,0.2)', LEFT_BROADSIDE: 'rgba(255,255,0,0.2)', RIGHT_BROADSIDE: 'rgba(255,200,0,0.2)' };
             const strokeColors = { SPINAL: '#ff6600', FORE: '#00aaff', AFT: '#888', LEFT_BROADSIDE: '#ccaa00', RIGHT_BROADSIDE: '#ddbb00' };
+            // Convert game angle (0° = forward/up) to canvas (0 = +x, CCW); canvas 0 = right, PI/2 = down
             function drawArc(centerX, centerY, range, startAngleDeg, spanDeg, fillStyle, strokeStyle) {
-                const start = ((ship.facing + startAngleDeg) * Math.PI) / 180;
-                const span = (spanDeg * Math.PI) / 180;
+                const gameAngle = (ship.facing + startAngleDeg) * Math.PI / 180;
+                const canvasStart = Math.PI / 2 - gameAngle - (spanDeg * Math.PI / 180) / 2;
+                const canvasEnd = Math.PI / 2 - gameAngle + (spanDeg * Math.PI / 180) / 2;
                 ctx.beginPath();
                 ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, range, start - span/2, start + span/2);
+                ctx.arc(centerX, centerY, range, canvasStart, canvasEnd);
                 ctx.closePath();
                 ctx.fillStyle = fillStyle;
                 ctx.fill();
@@ -7288,7 +7303,7 @@
                     const arcKey = arcsByKey[w.arc] || (cat === 'spinal' ? 'SPINAL' : (cat === 'fore' ? 'FORE' : 'AFT'));
                     const arcDef = WEAPON_ARCS[arcKey] || WEAPON_ARCS.FORE;
                     const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
-                    const range = (wt && wt.maxRange) ? wt.maxRange : 20;
+                    const range = ((wt && wt.maxRange) ? wt.maxRange : 400) * (typeof WEAPON_ARC_DISPLAY_SCALE !== 'undefined' ? WEAPON_ARC_DISPLAY_SCALE : 1);
                     const fillStyle = arcColors[arcKey] || 'rgba(100,100,255,0.15)';
                     const strokeStyle = strokeColors[arcKey] || '#666';
                     drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, fillStyle, strokeStyle);
@@ -7296,10 +7311,12 @@
             });
             (ship.class.weapons.broadsides || []).forEach(w => {
                 const arcKey = (w.arc && w.arc.includes('left')) ? 'LEFT_BROADSIDE' : 'RIGHT_BROADSIDE';
-                const arcDef = WEAPON_ARCS[arcKey];
+                const arcDef = WEAPON_ARCS[arcKey] || WEAPON_ARCS.LEFT_BROADSIDE;
                 const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
-                const range = (wt && wt.maxRange) ? wt.maxRange : 20;
-                drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, arcColors[arcKey], strokeColors[arcKey]);
+                const range = ((wt && wt.maxRange) ? wt.maxRange : 400) * (typeof WEAPON_ARC_DISPLAY_SCALE !== 'undefined' ? WEAPON_ARC_DISPLAY_SCALE : 1);
+                const fillStyle = arcColors[arcKey] || 'rgba(255,200,0,0.2)';
+                const strokeStyle = strokeColors[arcKey] || '#ddbb00';
+                drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, fillStyle, strokeStyle);
             });
         }
         
@@ -11880,12 +11897,10 @@ If camera gets stuck, press 'C' to reset!
                     break;
                 case '+':
                 case '=':
-                    // Zoom in
-                    gameState.camera.zoom = Math.min(15.0, gameState.camera.zoom * 1.2);
+                    gameState.camera.zoom = Math.min(75.0, gameState.camera.zoom * 1.2);
                     break;
                 case '-':
                 case '_':
-                    // Zoom out
                     gameState.camera.zoom = Math.max(0.2, gameState.camera.zoom * 0.8);
                     break;
                 case '1':
@@ -11918,7 +11933,7 @@ If camera gets stuck, press 'C' to reset!
             if (!gameState.camera.zoom || gameState.camera.zoom <= 0 || isNaN(gameState.camera.zoom)) {
                 gameState.camera.zoom = 1.0;
             }
-            gameState.camera.zoom = Math.max(0.2, Math.min(15.0, gameState.camera.zoom));
+            gameState.camera.zoom = Math.max(0.2, Math.min(75.0, gameState.camera.zoom));
             
             try {
                 // Advance movement animations (smooth curve: rotate over first thrust fraction of move)
@@ -11979,11 +11994,13 @@ If camera gets stuck, press 'C' to reset!
                     drawSensorArc(gameState.selectedShip);
                 }
                 
-                // Ghost: end-of-movement position and remaining Thrust (Planning, player only)
-                if (gameState.phase === 'PLANNING' && gameState.selectedShip && gameState.selectedShip.team === 'player' && gameState.selectedShip.position) {
+                // Ghost: end-of-movement position and remaining Thrust (Planning, player only). Pulse when not locked.
+                const inPlanning = gameState.phase === 'PLANNING' || (typeof gameState.currentPhase === 'number' && gameState.currentPhase === 0);
+                if (inPlanning && gameState.selectedShip && gameState.selectedShip.team === 'player' && gameState.selectedShip.position) {
                     const ship = gameState.selectedShip;
                     const g = getGhostForShip(ship);
-                    drawGhostAt(g.position, g.facing, ship.class);
+                    const ghostPulse = !ship.ordersConfirmed;
+                    drawGhostAt(g.position, g.facing, ship.class, ghostPulse);
                     const remaining = getRemainingThrust(ship);
                     const flash = gameState.ghostEditMode && remaining <= 0 && (Date.now() % 600 < 300);
                     ctx.save();
@@ -12028,12 +12045,20 @@ If camera gets stuck, press 'C' to reset!
                 
                 ctx.restore();
                 
-                // Draw UI overlay showing camera info
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                // Draw UI overlay: camera info and legend
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
                 ctx.font = '12px monospace';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
                 ctx.fillText(`Zoom: ${gameState.camera.zoom.toFixed(1)}x`, 10, canvas.height - 30);
                 ctx.fillText(`Camera: (${gameState.camera.x.toFixed(0)}, ${gameState.camera.y.toFixed(0)})`, 10, canvas.height - 15);
-                ctx.fillText(`Mousewheel: Zoom | C: Reset Camera`, 10, canvas.height - 45);
+                ctx.fillText(`Wheel: Zoom | Middle mouse: Pan | C: Reset`, 10, canvas.height - 45);
+                ctx.font = '10px monospace';
+                ctx.fillStyle = 'rgba(200, 220, 255, 0.95)';
+                let legY = 8;
+                ctx.fillText('Legend — Arcs: Orange=Spinal, Cyan=Fore, Yellow=Port/Starboard, Grey=Aft', 10, legY); legY += 14;
+                ctx.fillText('Green bar = status (ready/moved/fired). Dashed ring = sensor range. Yellow caret = bow.', 10, legY); legY += 14;
+                ctx.fillText('Leviathan (Shiva): 12 RU long. Weapon ranges ×20 vs ship length.', 10, legY);
                 
             } catch (error) {
                 console.error('Rendering error:', error);
@@ -12115,7 +12140,7 @@ If camera gets stuck, press 'C' to reset!
             
             const zoomSpeed = 0.1;
             const minZoom = 0.2;
-            const maxZoom = 3.0;
+            const maxZoom = 75.0;
             
             let newZoom = gameState.camera.zoom;
             
