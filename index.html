@@ -12055,10 +12055,15 @@ If camera gets stuck, press 'C' to reset!
                 ctx.fillText(`Wheel: Zoom | Middle mouse: Pan | C: Reset`, 10, canvas.height - 45);
                 ctx.font = '10px monospace';
                 ctx.fillStyle = 'rgba(200, 220, 255, 0.95)';
-                let legY = 8;
-                ctx.fillText('Legend — Arcs: Orange=Spinal, Cyan=Fore, Yellow=Port/Starboard, Grey=Aft', 10, legY); legY += 14;
-                ctx.fillText('Green bar = status (ready/moved/fired). Dashed ring = sensor range. Yellow caret = bow.', 10, legY); legY += 14;
-                ctx.fillText('Leviathan (Shiva): 12 RU long. Weapon ranges ×20 vs ship length.', 10, legY);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                const legRight = canvas.width - 10;
+                let legY = canvas.height - 10;
+                ctx.fillText('Leviathan (Shiva): 12 RU long. Weapon ranges ×20 vs ship length.', legRight, legY); legY -= 14;
+                ctx.fillText('Green bar = status (ready/moved/fired). Dashed ring = sensor range. Yellow caret = bow.', legRight, legY); legY -= 14;
+                ctx.fillText('Legend — Arcs: Orange=Spinal, Cyan=Fore, Yellow=Port/Starboard, Grey=Aft', legRight, legY);
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
                 
             } catch (error) {
                 console.error('Rendering error:', error);
