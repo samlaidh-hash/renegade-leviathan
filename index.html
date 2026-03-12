@@ -7,7 +7,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            background: #000; 
+            background: radial-gradient(circle at top, #101522 0%, #020308 55%, #000000 100%);
             color: #fff; 
             font-family: 'Courier New', monospace; 
             overflow: hidden;
@@ -23,10 +23,24 @@
         }
         .controls { 
             width: 380px; 
-            background: #1a1a1a; 
-            padding: 1rem; 
+            background: linear-gradient(180deg, #151822 0%, #0b0d14 40%, #05060a 100%); 
+            padding: 1rem 1rem 1.25rem; 
             overflow-y: auto;
-            border-left: 2px solid #444;
+            border-left: 2px solid #222;
+            box-shadow: -4px 0 18px rgba(0,0,0,0.8);
+        }
+        .controls::-webkit-scrollbar {
+            width: 8px;
+        }
+        .controls::-webkit-scrollbar-track {
+            background: #05070b;
+        }
+        .controls::-webkit-scrollbar-thumb {
+            background: #303546;
+            border-radius: 4px;
+        }
+        .controls::-webkit-scrollbar-thumb:hover {
+            background: #3f4760;
         }
         canvas { 
             border: 2px solid #666; 
@@ -50,21 +64,30 @@
             max-width: 250px;
         }
         .controls h3 { 
-            color: #00ff00; 
+            color: #e0f5ff; 
             margin-bottom: 1rem; 
-            border-bottom: 1px solid #00ff00;
-            padding-bottom: 0.5rem;
+            padding: 0.5rem 0.25rem;
+            border-bottom: 2px solid #2677ff;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
         .section { 
-            background: #2a2a2a; 
-            margin-bottom: 1rem; 
-            padding: 0.75rem; 
-            border-radius: 4px;
-            border: 1px solid #444;
+            background: radial-gradient(circle at top left, #2b3344 0%, #171c26 35%, #10131b 100%); 
+            margin-bottom: 0.85rem; 
+            padding: 0.75rem 0.75rem 0.7rem; 
+            border-radius: 6px;
+            border: 1px solid #323b4a;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
         }
         .section h4 { 
-            color: #4da6ff; 
+            color: #8ac4ff; 
             margin-bottom: 0.5rem; 
+            font-size: 0.8rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 0.25rem;
         }
         .button-grid { 
             display: grid; 
@@ -79,53 +102,65 @@
             margin: 0.5rem 0;
         }
         .btn { 
-            padding: 0.4rem 0.6rem; 
-            border: none; 
-            border-radius: 3px; 
+            padding: 0.42rem 0.7rem; 
+            border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 4px; 
             cursor: pointer; 
             font-size: 0.75rem;
-            transition: all 0.2s;
-            color: white;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+            color: #f5f7ff;
+            background: linear-gradient(180deg, #222634 0%, #131722 100%);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.6);
         }
         .btn:hover { 
             transform: translateY(-1px); 
-            filter: brightness(1.2);
+            filter: brightness(1.12);
+            border-color: rgba(255,255,255,0.18);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.75);
         }
         .phase-disabled { opacity: 0.45; pointer-events: none; }
         .btn[data-tooltip] { position: relative; }
         .control-tooltip { position: fixed; z-index: 9999; max-width: 220px; padding: 6px 8px; background: rgba(0,30,40,0.95); border: 1px solid #4da6ff; border-radius: 4px; font-size: 0.75rem; color: #aaffff; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-        .btn-blue { background: #0066cc; }
-        .btn-green { background: #006600; }
-        .btn-red { background: #cc0000; }
-        .btn-orange { background: #cc6600; }
-        .btn-purple { background: #6600cc; }
-        .btn-cyan { background: #006666; }
-        .btn-yellow { background: #ccaa00; }
+        .btn-blue { background: linear-gradient(180deg, #1e6ad8 0%, #104189 100%); }
+        .btn-green { background: linear-gradient(180deg, #1e8b3a 0%, #115225 100%); }
+        .btn-red { background: linear-gradient(180deg, #d23737 0%, #8a1c1c 100%); }
+        .btn-orange { background: linear-gradient(180deg, #d47a2a 0%, #934c13 100%); }
+        .btn-purple { background: linear-gradient(180deg, #7c3fd6 0%, #472184 100%); }
+        .btn-cyan { background: linear-gradient(180deg, #1f7c8a 0%, #0f4851 100%); }
+        .btn-yellow { background: linear-gradient(180deg, #d1a52a 0%, #927219 100%); }
         .ship-list { 
             max-height: 120px; 
             overflow-y: auto; 
         }
         .ship-item { 
-            padding: 0.4rem; 
+            padding: 0.45rem 0.5rem; 
             margin: 0.25rem 0; 
-            border-radius: 3px; 
+            border-radius: 4px; 
             cursor: pointer; 
-            border: 1px solid #666;
-            transition: all 0.2s;
+            border: 1px solid #353c4b;
+            transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
             font-size: 0.8rem;
+            background: radial-gradient(circle at top left, rgba(90,110,150,0.35), rgba(10,12,18,0.95));
         }
         .ship-item:hover { 
-            background: #333; 
+            background: radial-gradient(circle at top left, rgba(120,150,190,0.5), rgba(20,24,34,0.98));
+            box-shadow: 0 1px 6px rgba(0,0,0,0.7);
         }
         .ship-item.selected { 
-            background: #004488; 
-            border-color: #0066cc; 
+            background: radial-gradient(circle at top left, rgba(60,120,200,0.7), rgba(8,16,26,0.98)); 
+            border-color: #2f8dff; 
+            box-shadow: 0 0 0 1px rgba(47,141,255,0.7), 0 3px 10px rgba(0,0,0,0.9);
+            transform: translateY(-1px);
         }
         .ship-item.ready { 
             border-color: #00aa00; 
         }
         .ship-item.orders-set { 
             border-color: #aa6600; 
+        }
+        .btn.selected { 
+            box-shadow: 0 0 0 2px #00ff00; 
+            filter: brightness(1.2);
         }
         .tooltip { 
             position: absolute; 
@@ -234,7 +269,7 @@
                 <h3 style="color: #00ff00;">⚡ Renegade Legion: Leviathan</h3>
                 <p>Turn <span id="currentTurn">1</span> - <span id="currentPhase" class="status-planning">Planning Phase</span></p>
                 <p>Command Points: <span id="commandPoints">3</span></p>
-                <p style="font-size: 0.7rem; margin-top: 0.5rem;">6-Phase System - All Updates Implemented ✓</p>
+                <p style="font-size: 0.7rem; margin-top: 0.5rem;">Dual-Phase: Planning → 5s Execution → Replay or Advance</p>
             </div>
             
             <!-- Objectives -->
@@ -249,6 +284,16 @@
                 </div>
             </div>
             
+            <!-- Execution complete overlay: Replay / Advance (shown when 5-sec execution finished) -->
+            <div class="overlay" id="executionCompleteOverlay" style="display: none; left: 50%; top: 50%; transform: translate(-50%, -50%); min-width: 280px;">
+                <h3 style="color: #ffaa00; margin-bottom: 0.75rem;">Execution Complete</h3>
+                <p style="font-size: 0.8rem; margin-bottom: 1rem;">Replay the 5-second turn or advance to next planning phase.</p>
+                <div class="button-grid">
+                    <button class="btn btn-cyan" onclick="replayExecution()">Replay</button>
+                    <button class="btn btn-green" onclick="advanceToPlanning()">Advance to Planning</button>
+                </div>
+            </div>
+            
             <!-- Tooltip -->
             <div id="tooltip" class="tooltip" style="display: none;"></div>
             <div id="controlTooltip" class="control-tooltip" style="display: none;"></div>
@@ -260,8 +305,9 @@
             <!-- Game Controls -->
             <div class="section">
                 <h4>Game Controls</h4>
-                <button class="btn btn-blue" data-action="nextPhase" data-tooltip="Advance to the next phase (Planning → Movement → Fighter → Firing → Resolution)." onclick="nextPhase()" style="width: 100%; margin-bottom: 0.5rem;">Next Phase</button>
+                <button class="btn btn-blue" id="nextPhaseBtn" data-action="nextPhase" data-tooltip="When all ships have orders, execute the turn (5-second real-time playback)." onclick="nextPhase()" style="width: 100%; margin-bottom: 0.5rem;">Execute Turn</button>
                 <button class="btn btn-green" data-action="startNewBattle" data-tooltip="Start a new battle; current game state is reset." onclick="startNewBattle()" style="width: 100%; margin-bottom: 0.5rem;">New Battle</button>
+                <button class="btn btn-purple" data-action="startCarrierDuel" data-tooltip="Start a symmetric carrier duel test scenario for fighters, drones, missiles, and PD." onclick="startCarrierDuel()" style="width: 100%; margin-bottom: 0.5rem;">Test: Carrier Duel</button>
                 <button class="btn btn-yellow" data-action="resetCamera" data-tooltip="Center the map and reset zoom to 1x. Shortcut: C." onclick="resetCamera()" style="width: 100%; margin-bottom: 0.5rem;">Reset Camera (C)</button>
                 <button class="btn btn-purple" data-action="showCombatRules" data-tooltip="Open the combat rules reference in a new window." onclick="showCombatRules()" style="width: 100%;">📖 Combat Rules Reference</button>
             </div>
@@ -271,9 +317,10 @@
                 <h4 style="color: #00ff00;">📋 Planning Phase</h4>
                 <div style="font-size: 0.75rem; margin-bottom: 0.5rem;">
                     <p>• LMB ship to select (shows arcs + ghost)</p>
-                    <p>• LMB ghost to drag; wheel to rotate (costs Thrust)</p>
-                    <p>• LMB again to lock ghost; Confirm Orders when done</p>
-                    <p>• All ships must have orders</p>
+                    <p>• Drag ghost to set movement; wheel to rotate (costs Thrust)</p>
+                    <p>• Task missiles (assign targets), weapons, special orders</p>
+                    <p>• Confirm Orders per ship; when all tasked, click Execute Turn</p>
+                    <p>• Execution runs 5s real-time, then Replay or Advance</p>
                 </div>
                 <div id="orderProgress" style="background: #333; height: 8px; border-radius: 4px; margin: 0.5rem 0;">
                     <div id="orderProgressBar" style="background: #00aa00; height: 100%; width: 0%; border-radius: 4px; transition: width 0.3s;"></div>
@@ -414,54 +461,68 @@
 
             <!-- Weapon Systems Controls -->
             <div class="section" id="weaponPanel" style="display: none;">
-                <h4 style="color: #ff4444;">⚡ Energy & Weapons</h4>
+                <h4 style="color: #ff4444;">⚡ Energy & Weapons (6-point)</h4>
                 
-                <!-- Energy Status Display -->
+                <!-- 6-point Energy Status -->
                 <div style="background: #1a1a1a; border: 1px solid #444; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 3px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                        <span>Energy Generation: <span id="energyGeneration" style="color: #00ff00;">150000</span></span>
-                        <span>Power Banks: <span id="powerBanks" style="color: #ffaa00;">15000</span></span>
+                    <div style="font-size: 0.75rem;">
+                        <span>Energy: <span id="energyPointsUsed" style="color: #ff4444;">0</span> / <span id="energyPointsMax" style="color: #00ff00;">6</span></span>
+                        <span style="margin-left: 0.5rem;">Reactor: <span id="reactorMaxDisplay">6</span> max</span>
                     </div>
-                    <div style="margin-top: 0.25rem;">
-                        <span style="font-size: 0.75rem;">Energy Demand: <span id="energyDemand" style="color: #ff0000;">0</span></span>
-                        <div style="background: #333; height: 6px; border-radius: 3px; margin-top: 0.25rem;">
-                            <div id="energyBar" style="background: #00aa00; height: 100%; width: 50%; border-radius: 3px; transition: all 0.3s;"></div>
-                        </div>
+                    <div style="background: #333; height: 8px; border-radius: 4px; margin-top: 0.25rem;">
+                        <div id="energyBar6" style="background: #00aa00; height: 100%; width: 0%; border-radius: 4px; transition: width 0.3s;"></div>
                     </div>
                 </div>
                 
-                <!-- Shield Controls -->
+                <!-- Thrust (energy cost) -->
                 <div style="margin: 0.5rem 0;">
-                    <p style="color: #00aaaa; font-size: 0.8rem; margin-bottom: 0.25rem;">🛡️ Shield Management</p>
-                    <div style="margin-bottom: 0.25rem;">
-                        <label style="font-size: 0.7rem;">Fore Shields: <span id="foreShieldPercent">100</span>%</label>
-                        <input type="range" id="foreShieldSlider" min="0" max="150" value="100" 
-                               style="width: 100%; margin: 0.25rem 0;" 
-                               oninput="updateShieldSetting('fore', this.value)">
-                    </div>
-                    <div style="margin-bottom: 0.25rem;">
-                        <label style="font-size: 0.7rem;">Aft Shields: <span id="aftShieldPercent">100</span>%</label>
-                        <input type="range" id="aftShieldSlider" min="0" max="150" value="100" 
-                               style="width: 100%; margin: 0.25rem 0;" 
-                               oninput="updateShieldSetting('aft', this.value)">
+                    <p style="color: #ffaa00; font-size: 0.8rem; margin-bottom: 0.25rem;">🚀 Thrust</p>
+                    <div class="button-grid-4" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr;">
+                        <button type="button" class="btn btn-cyan" data-thrust="ZERO" onclick="setThrust6('ZERO')" title="0 E">0</button>
+                        <button type="button" class="btn btn-cyan" data-thrust="HALF" onclick="setThrust6('HALF')" title="1 E">½</button>
+                        <button type="button" class="btn btn-cyan" data-thrust="FULL" onclick="setThrust6('FULL')" title="2 E">1×</button>
+                        <button type="button" class="btn btn-cyan" data-thrust="PLUS_50" onclick="setThrust6('PLUS_50')" title="4 E">+50%</button>
+                        <button type="button" class="btn btn-cyan" data-thrust="DOUBLE" onclick="setThrust6('DOUBLE')" title="6 E">2×</button>
                     </div>
                 </div>
                 
-                <!-- Turret Controls -->
+                <!-- Shields (energy cost) -->
                 <div style="margin: 0.5rem 0;">
-                    <p style="color: #ffaa00; font-size: 0.8rem; margin-bottom: 0.25rem;">🔫 Turret Management</p>
-                    <div style="margin-bottom: 0.25rem;">
-                        <label style="font-size: 0.7rem;">Port Turrets: <span id="leftTurretPercent">100</span>%</label>
-                        <input type="range" id="leftTurretSlider" min="0" max="150" value="100" 
-                               style="width: 100%; margin: 0.25rem 0;" 
-                               oninput="updateTurretSetting('left', this.value)">
+                    <p style="color: #00aaaa; font-size: 0.8rem; margin-bottom: 0.25rem;">🛡️ Shields</p>
+                    <div class="button-grid-4" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr;">
+                        <button type="button" class="btn btn-blue" data-shield="ZERO" onclick="setShield6('ZERO')" title="0 E">0</button>
+                        <button type="button" class="btn btn-blue" data-shield="HALF" onclick="setShield6('HALF')" title="1 E">½</button>
+                        <button type="button" class="btn btn-blue" data-shield="FULL" onclick="setShield6('FULL')" title="2 E">1×</button>
+                        <button type="button" class="btn btn-blue" data-shield="PLUS_50" onclick="setShield6('PLUS_50')" title="4 E">+50%</button>
+                        <button type="button" class="btn btn-blue" data-shield="PLUS_100" onclick="setShield6('PLUS_100')" title="6 E">+100%</button>
                     </div>
-                    <div style="margin-bottom: 0.25rem;">
-                        <label style="font-size: 0.7rem;">Starboard Turrets: <span id="rightTurretPercent">100</span>%</label>
-                        <input type="range" id="rightTurretSlider" min="0" max="150" value="100" 
-                               style="width: 100%; margin: 0.25rem 0;" 
-                               oninput="updateTurretSetting('right', this.value)">
+                </div>
+                
+                <!-- Reactor hot -->
+                <div style="margin: 0.5rem 0;">
+                    <label style="font-size: 0.75rem;"><input type="checkbox" id="reactorHotCheck" onchange="setReactorHot6(this.checked)"> Run reactor hot (+1 E, 20% chance permanent -1 max)</label>
+                </div>
+                
+                <!-- Point Defense Mode -->
+                <div style="margin: 0.5rem 0;">
+                    <p style="color: #00ff88; font-size: 0.8rem; margin-bottom: 0.25rem;">🛡️ Point Defense</p>
+                    <div class="button-grid">
+                        <button type="button" class="btn btn-cyan" id="pdPointBtn" onclick="setPointDefenseMode('point')">Point</button>
+                        <button type="button" class="btn btn-cyan" id="pdAreaBtn" onclick="setPointDefenseMode('area')">Area</button>
+                        <button type="button" class="btn btn-cyan" id="pdOffBtn" onclick="setPointDefenseMode('off')">Off</button>
                     </div>
+                    <p style="font-size: 0.65rem; color: #888;">Point=own ship only; Area=own+nearby; Off=no PD</p>
+                </div>
+                
+                <!-- Legacy energy (hidden, keep for compatibility) -->
+                <div id="legacyEnergyDisplay" style="display: none;">
+                    <span id="energyGeneration">150000</span>
+                    <span id="powerBanks">15000</span>
+                    <span id="energyDemand">0</span>
+                    <span id="foreShieldPercent">100</span>
+                    <span id="aftShieldPercent">100</span>
+                    <span id="leftTurretPercent">100</span>
+                    <span id="rightTurretPercent">100</span>
                 </div>
                 
                 <!-- Target Selection -->
@@ -547,28 +608,28 @@
                 </div>
             </div>
             
-            <!-- UPDATE #11: Fighter Operations Panel -->
+            <!-- UPDATE #11: Fighter Operations Panel (planning: select from hangar, assign mission; execution: flights launch) -->
             <div class="section" id="fighterOpsPanel" style="display: none;">
                 <h4 style="color: #00aaff;">✈️ Fighter Operations</h4>
                 <div id="fighterStatus" style="font-size: 0.75rem; margin-bottom: 0.5rem;">
-                    <p>Hangar: <span id="fighterHangar">0</span></p>
-                    <p>Deployed: <span id="fighterDeployed">0</span></p>
-                    <p>Current Type: <span id="currentFighterType">None</span></p>
+                    <p>Hangar: <span id="fighterHangar">0</span> | Deployed: <span id="fighterDeployed">0</span></p>
+                    <p>Type: <span id="currentFighterType">None</span></p>
+                </div>
+                
+                <p style="color: #00ff88; font-size: 0.75rem; margin-bottom: 0.25rem;">Hangar flights — select mission (planning). Flights launch in execution phase.</p>
+                <div id="hangarFlightsList" style="max-height: 180px; overflow-y: auto; background: #1a1a1a; border: 1px solid #333; padding: 0.25rem; margin-bottom: 0.5rem;"></div>
+                
+                <div id="fighterTargetPrompt" style="display: none; background: #442200; border: 1px solid #ff8800; padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.75rem;">
+                    <strong>Click an enemy ship on the map to set mission target.</strong>
                 </div>
                 
                 <div style="margin: 0.5rem 0;">
-                    <p style="color: #00aaff; font-size: 0.8rem; margin-bottom: 0.25rem;">🎯 Squadron Orders</p>
-                    <div class="button-grid">
-                        <button class="btn btn-green" data-tooltip="Launch all ready fighter squadrons from the selected carrier." onclick="launchFighters()">Launch Fighters</button>
-                        <button class="btn btn-orange" data-tooltip="Recall all fighter squadrons to the selected carrier." onclick="recallFighters()">Recall All</button>
-                    </div>
+                    <p style="color: #aa00ff; font-size: 0.8rem; margin-bottom: 0.25rem;">Deployed flights — click flight on map to change mission (loadout fixed in flight)</p>
+                    <div id="deployedFlightsList" style="max-height: 100px; overflow-y: auto; font-size: 0.7rem;"></div>
                 </div>
                 
-                <div style="margin: 0.5rem 0;">
-                    <label style="font-size: 0.7rem;">Launch Count: <span id="launchCountValue">1</span></label>
-                    <input type="range" id="launchCountSlider" min="1" max="3" value="1" 
-                           style="width: 100%; margin: 0.25rem 0;" 
-                           oninput="updateLaunchCount(this.value)">
+                <div class="button-grid" style="margin-top: 0.5rem;">
+                    <button class="btn btn-orange" data-tooltip="Recall all fighter squadrons to the selected carrier." onclick="recallFighters()">Recall All</button>
                 </div>
             </div>
             
@@ -683,6 +744,12 @@
                         <button class="btn btn-yellow" data-tooltip="Reroute power between systems (weapons, engines, shields) to optimize performance." onclick="reroutePower()">Reroute Power</button>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Combat Log Panel -->
+            <div class="section" id="combatLogPanel" style="display: none; max-height: 180px; overflow-y: auto;">
+                <h4 style="color: #ffffff;">📜 Combat Log <span style="font-size:0.7rem;">(toggle with L)</span></h4>
+                <div id="combatLog" style="font-size: 0.7rem; max-height: 140px; overflow-y: auto; background: #000; border: 1px solid #444; padding: 0.25rem;"></div>
             </div>
             
             <!-- UPDATE #9: Simplified Fighter Operations Panel -->
@@ -859,17 +926,20 @@
             },
             previewOrders: null  // { type: 'speed'|'heading', delta: number } when hovering left half of order buttons
             , ghostEditMode: false   // true when LMB on ghost to drag/rotate
-            , movementAnimations: null  // during movement phase: Map shipId -> { startPos, endPos, startFacing, endFacing, thrustRot, thrustMove, progress }
+            , movementAnimations: null  // during execution: Map shipId -> { startPos, endPos, startFacing, endFacing, thrustRot, thrustMove, progress }
+            , executionStartTime: null   // Date.now() when execution phase started
+            , executionDurationMs: 5000  // 5-second real-time execution
+            , executionPaused: false      // true when 5 sec finished; show Replay / Advance
+            ,             executionSnapshots: null   // snapshot of ship positions at start of execution (for Replay)
+            , awaitingFighterTargetClick: false  // true when mission needs target and waiting for LMB on enemy
+            , pendingFighterMission: null       // { shipId, squadronId, missionType }
+            , selectedFlightId: null            // shipId_squadronId for selected flight (to change mission)
         };
 
-        // UPDATE #6: New 6-Phase Turn System
+        // Dual-phase turn system: Planning → Execution (5 sec real-time) → Replay or Advance
         const GAME_PHASES = [
             { name: 'PLANNING', displayName: 'Planning Phase', subphases: ['A', 'B', 'C'] },
-            { name: 'MOVEMENT', displayName: 'Movement Phase', subphases: [] },
-            { name: 'FIGHTER', displayName: 'Fighter Phase', subphases: [] },
-            { name: 'FIGHTER_MOVEMENT', displayName: 'Fighter Movement Phase', subphases: [] },
-            { name: 'FIRING', displayName: 'Firing Phase', subphases: [] },
-            { name: 'RESOLUTION', displayName: 'Resolution Phase', subphases: [] }
+            { name: 'EXECUTION', displayName: 'Execution Phase', subphases: [] }
         ];
 
         // Phase-based panel visibility rules
@@ -878,43 +948,11 @@
                 planning: true,
                 maneuver: true,
                 electronic: true,
-                weapons: false,
-                fighters: false,
-                detection: false  // Removed as per requirements
-            },
-            'MOVEMENT': {
-                planning: false,
-                maneuver: false,
-                electronic: false,
-                weapons: false,
-                fighters: false,
-                detection: false
-            },
-            'FIGHTER': {
-                planning: false,
-                maneuver: false,
-                electronic: false,
-                weapons: false,
-                fighters: true,
-                detection: false
-            },
-            'FIGHTER_MOVEMENT': {
-                planning: false,
-                maneuver: false,
-                electronic: false,
-                weapons: false,
-                fighters: false,
-                detection: false
-            },
-            'FIRING': {
-                planning: false,
-                maneuver: false,
-                electronic: false,
                 weapons: true,
-                fighters: false,
-                detection: false
+                fighters: true,
+                detection: true
             },
-            'RESOLUTION': {
+            'EXECUTION': {
                 planning: false,
                 maneuver: false,
                 electronic: false,
@@ -1047,23 +1085,28 @@
 
         // UPDATE #7: Energy Management & Weapons System
         
-        // Energy system constants
+        // Dual-phase energy: 6 points per ship per turn (see GameDesign.md)
+        const ENERGY_RULES = {
+            DEFAULT_ENERGY: 6,
+            THRUST: { ZERO: 0, HALF: 1, FULL: 2, PLUS_50: 4, DOUBLE: 6 },
+            SHIELDS: { ZERO: 0, HALF: 1, FULL: 2, PLUS_50: 4, PLUS_100: 6 },
+            BROADSIDE_OR_SPINAL_FIRE: 2,   // per activation (fore/aft autofire = 0)
+            REACTOR_HOT: { EXTRA_ENERGY: 1, PERMANENT_REDUCE_CHANCE: 0.2 }
+        };
+        
+        // Point defense modes: Point (own ship only), Area (own + nearby missiles/fighters), Off
+        const POINT_DEFENSE_MODES = { POINT: 'point', AREA: 'area', OFF: 'off' };
+        
+        // Energy system constants (legacy raw power; can migrate to ENERGY_RULES)
         const ENERGY_SYSTEM = {
-            // Base energy costs per percentage point (0-100%)
-            SHIELD_COST_PER_PERCENT: 2,     // 2 energy per % of base shield
-            TURRET_COST_PER_PERCENT: 1.5,   // 1.5 energy per % of base turret
-            EW_COST_PER_PERCENT: 3,         // 3 energy per % of base EW
-            
-            // Over 100% costs double energy per point
+            SHIELD_COST_PER_PERCENT: 2,
+            TURRET_COST_PER_PERCENT: 1.5,
+            EW_COST_PER_PERCENT: 3,
             OVERCHARGE_MULTIPLIER: 2,
-            
-            // Maximum adjustment ranges
-            MAX_SHIELD_PERCENT: 150,  // Can boost to 150% of base
+            MAX_SHIELD_PERCENT: 150,
             MAX_TURRET_PERCENT: 150,
             MAX_EW_PERCENT: 150,
-            MIN_PERCENT: 0,           // Can reduce to 0%
-            
-            // Power bank capacity (10% of total power generation)
+            MIN_PERCENT: 0,
             POWER_BANK_RATIO: 0.1
         };
 
@@ -1186,55 +1229,13 @@
             }
         }
         
-        // Definitive Missile Types: ranges ×20 (proportionate to 12 RU Leviathan); travelTime = turns to max range (proportionate)
+        // Missile types: ranges halved; travelTime proportionate
         window.MISSILE_TYPES = window.MISSILE_TYPES || {
-            STANDARD: { 
-                name: 'Standard Missile',
-                hitChance: 90,
-                maxRange: 500, 
-                damage: 3,
-                cost: 2,
-                defensiveBonus: 1,
-                travelTime: 1   // turns to reach max range (proportionate to range scale)
-            },
-            HEAVY: { 
-                name: 'Heavy Missile',
-                hitChance: 85,
-                maxRange: 600, 
-                damage: 5,
-                cost: 4,
-                defensiveBonus: 2,
-                travelTime: 1
-            },
-            TYPE_E_MISSILE: { 
-                name: 'Type E Missile',
-                hitChance: 90,
-                maxRange: 700, 
-                damage: 6,
-                cost: 6,
-                defensiveBonus: 3,
-                travelTime: 1
-            },
-            HUNTER_KILLER: { 
-                name: 'Hunter-Killer Missile',
-                hitChance: 95,
-                maxRange: 600, 
-                damage: 3,
-                cost: 3,
-                defensiveBonus: 2,
-                special: 'high_accuracy',
-                travelTime: 1
-            },
-            NUCLEAR: { 
-                name: 'Nuclear Warhead',
-                hitChance: 75,
-                maxRange: 400, 
-                damage: 15,
-                cost: 8,
-                defensiveBonus: 1,
-                special: 'area_effect',
-                travelTime: 1
-            }
+            STANDARD: { name: 'Standard Missile', hitChance: 90, maxRange: 250, damage: 3, cost: 2, defensiveBonus: 1, travelTime: 1 },
+            HEAVY: { name: 'Heavy Missile', hitChance: 85, maxRange: 300, damage: 5, cost: 4, defensiveBonus: 2, travelTime: 1 },
+            TYPE_E_MISSILE: { name: 'Type E Missile', hitChance: 90, maxRange: 350, damage: 6, cost: 6, defensiveBonus: 3, travelTime: 1 },
+            HUNTER_KILLER: { name: 'Hunter-Killer Missile', hitChance: 95, maxRange: 300, damage: 3, cost: 3, defensiveBonus: 2, special: 'high_accuracy', travelTime: 1 },
+            NUCLEAR: { name: 'Nuclear Warhead', hitChance: 75, maxRange: 200, damage: 15, cost: 8, defensiveBonus: 1, special: 'area_effect', travelTime: 1 }
         };
 
         // Enhanced Missile Combat System using definitive RL:L rules
@@ -1425,7 +1426,7 @@
                 
                 // Check for catastrophic failure (30+ points over target)
                 if (attackRoll > hitChance + 30) {
-                    fighterSquadron.status = 'DESTROYED';
+                    applySquadronDestroyed(fighterSquadron);
                     return {
                         success: false,
                         destroyed: true,
@@ -1507,9 +1508,7 @@
                 const attackRoll = Math.floor(Math.random() * 100) + 1;
                 
                 if (attackRoll <= hitChance) {
-                    // Any hit from ship laser destroys fighter
-                    fighterSquadron.status = 'DESTROYED';
-                    
+                    applySquadronDestroyed(fighterSquadron);
                     return {
                         success: true,
                         destroyed: true,
@@ -2628,8 +2627,7 @@
                 
                 // Check for catastrophic failure (destroyed by defensive fire)
                 if (attackRoll <= hitChance - 30) {
-                    // Assault shuttle destroyed by defensive fire
-                    fighterSquadron.status = 'DESTROYED';
+                    applySquadronDestroyed(fighterSquadron);
                     return { 
                         success: false, 
                         reason: 'Assault shuttle destroyed by defensive fire',
@@ -2975,6 +2973,19 @@
                         <div>Crew: ${ship.class.crew.total} | Marines: ${ship.class.crew.marines || 0}</div>
                         <div>Shields: ${ship.class.shields.fore}/${ship.class.shields.aft}</div>
                     </div>
+                    ${ship.crewStations ? `
+                        <div style="margin-top: 0.5rem; border-top: 1px solid #444; padding-top: 0.5rem;">
+                            <div style="color: #ffaa00; font-size: 0.8rem; font-weight: bold;">Crew Stations</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; margin-top: 0.25rem; font-size: 0.65rem;">
+                                ${Object.entries(ship.crewStations).map(([key, station]) => {
+                                    const pretty = key
+                                        .replace(/([A-Z])/g, ' $1')
+                                        .replace(/^./, c => c.toUpperCase());
+                                    const grade = station.crewGrade || 'REGULAR';
+                                    return `<div><span style="color:#999;">${pretty}:</span> <span style="color:#00ffcc;">${grade}</span></div>`;
+                                }).join('')}
+                            </div>
+                        </div>` : ''}
                     ${systemStatusHTML}
                 </div>
             `;
@@ -3079,126 +3090,26 @@
         
         // Scale factor: Leviathan 12 RU long; broadside/spinal ranges ×20 for proportionate scale
         const WEAPON_RANGE_SCALE = 20;
-        // Definitive weapon types with authentic RL:L X/Y notation (ranges ×20 vs 12 RU ship length)
+        // Definitive weapon types (ranges halved from previous ×20 scale)
         const WEAPON_TYPES = {
-            // LASER WEAPONS - X/Y format (Range/Damage), maxRange ×20
-            'LASER_37_5_25': { 
-                name: '37.5/25 Laser Battery', 
-                maxRange: 400, 
-                damage: 5,
-                type: 'LASER'
-            },
-            'LASER_37_5_20': { 
-                name: '37.5/20 Laser Battery', 
-                maxRange: 400, 
-                damage: 4,
-                type: 'LASER'
-            },
-            'LASER_30_20': { 
-                name: '30/20 Laser Battery', 
-                maxRange: 320, 
-                damage: 4,
-                type: 'LASER'
-            },
-            'LASER_22_5_15': { 
-                name: '22.5/15 Laser Battery', 
-                maxRange: 240, 
-                damage: 3,
-                type: 'LASER'
-            },
-            'LASER_22_5_5': { 
-                name: '22.5/5 Laser Battery', 
-                maxRange: 240, 
-                damage: 1,
-                type: 'LASER'
-            },
-            'LASER_15_10': { 
-                name: '15/10 Laser Battery', 
-                maxRange: 160, 
-                damage: 2,
-                type: 'LASER'
-            },
-            'LASER_7_5_5': { 
-                name: '7.5/5 Laser Battery', 
-                maxRange: 80, 
-                damage: 1,
-                type: 'LASER'
-            },
-            // SPINAL MOUNT WEAPONS, maxRange ×20
-            'TYPE_A_SPINAL': { 
-                name: 'Type A Spinal Mount', 
-                maxRange: 1600, 
-                damage: 120,
-                type: 'SPINAL'
-            },
-            'TYPE_B_SPINAL': { 
-                name: 'Type B Spinal Mount', 
-                maxRange: 2400, 
-                damage: 160,
-                type: 'SPINAL'
-            },
-            'TYPE_C_SPINAL': { 
-                name: 'Type C Spinal Mount', 
-                maxRange: 3200, 
-                damage: 200,
-                type: 'SPINAL'
-            },
-            'TYPE_D_SPINAL': { 
-                name: 'Type D Spinal Mount', 
-                maxRange: 4000, 
-                damage: 220,
-                type: 'SPINAL'
-            },
-            'TYPE_E_SPINAL': { 
-                name: 'Type E Spinal Mount', 
-                maxRange: 320, 
-                damage: 240,
-                type: 'SPINAL'
-            },
-            // LEGACY COMPATIBILITY WEAPONS
-            'LASER_HEAVY': { 
-                name: 'Heavy Laser Cannon', 
-                maxRange: 320, 
-                damage: 4, 
-                type: 'LASER',
-                legacy: 'LASER_30_20'
-            },
-            'LASER_MEDIUM': { 
-                name: 'Medium Laser Cannon', 
-                maxRange: 240, 
-                damage: 3, 
-                type: 'LASER',
-                legacy: 'LASER_22_5_15'
-            },
-            'LASER_LIGHT': { 
-                name: 'Light Laser Cannon', 
-                maxRange: 160, 
-                damage: 2, 
-                type: 'LASER',
-                legacy: 'LASER_15_10'
-            },
-            'LASER_MEGA': { 
-                name: 'Mega Laser Cannon', 
-                maxRange: 400, 
-                damage: 5, 
-                type: 'LASER',
-                legacy: 'LASER_37_5_25'
-            },
-            // MISSILE WEAPONS (ranges ×20; resolved in Firing phase)
-            'STANDARD_MISSILE': { 
-                name: 'Standard Missile', 
-                hitChance: 90, 
-                maxRange: 500, 
-                damage: 3, 
-                type: 'MISSILE'
-            },
-            'TYPE_E_MISSILE': { 
-                name: 'Type E Missile', 
-                hitChance: 90, 
-                maxRange: 600, 
-                damage: 5, 
-                type: 'MISSILE'
-            }
+            'LASER_37_5_25': { name: '37.5/25 Laser Battery', maxRange: 200, damage: 5, type: 'LASER' },
+            'LASER_37_5_20': { name: '37.5/20 Laser Battery', maxRange: 200, damage: 4, type: 'LASER' },
+            'LASER_30_20': { name: '30/20 Laser Battery', maxRange: 160, damage: 4, type: 'LASER' },
+            'LASER_22_5_15': { name: '22.5/15 Laser Battery', maxRange: 120, damage: 3, type: 'LASER' },
+            'LASER_22_5_5': { name: '22.5/5 Laser Battery', maxRange: 120, damage: 1, type: 'LASER' },
+            'LASER_15_10': { name: '15/10 Laser Battery', maxRange: 80, damage: 2, type: 'LASER' },
+            'LASER_7_5_5': { name: '7.5/5 Laser Battery', maxRange: 40, damage: 1, type: 'LASER' },
+            'TYPE_A_SPINAL': { name: 'Type A Spinal Mount', maxRange: 800, damage: 120, type: 'SPINAL' },
+            'TYPE_B_SPINAL': { name: 'Type B Spinal Mount', maxRange: 1200, damage: 160, type: 'SPINAL' },
+            'TYPE_C_SPINAL': { name: 'Type C Spinal Mount', maxRange: 1600, damage: 200, type: 'SPINAL' },
+            'TYPE_D_SPINAL': { name: 'Type D Spinal Mount', maxRange: 2000, damage: 220, type: 'SPINAL' },
+            'TYPE_E_SPINAL': { name: 'Type E Spinal Mount', maxRange: 160, damage: 240, type: 'SPINAL' },
+            'LASER_HEAVY': { name: 'Heavy Laser Cannon', maxRange: 160, damage: 4, type: 'LASER', legacy: 'LASER_30_20' },
+            'LASER_MEDIUM': { name: 'Medium Laser Cannon', maxRange: 120, damage: 3, type: 'LASER', legacy: 'LASER_22_5_15' },
+            'LASER_LIGHT': { name: 'Light Laser Cannon', maxRange: 80, damage: 2, type: 'LASER', legacy: 'LASER_15_10' },
+            'LASER_MEGA': { name: 'Mega Laser Cannon', maxRange: 200, damage: 5, type: 'LASER', legacy: 'LASER_37_5_25' },
+            'STANDARD_MISSILE': { name: 'Standard Missile', hitChance: 90, maxRange: 250, damage: 3, type: 'MISSILE' },
+            'TYPE_E_MISSILE': { name: 'Type E Missile', hitChance: 90, maxRange: 300, damage: 5, type: 'MISSILE' }
         };
 
         // Range bands for laser and spinal mount combat
@@ -3350,15 +3261,33 @@
                 const weapons = this.ship.class.weapons;
                 if (!weapons) return null;
                 
-                // Check all weapon categories
                 const allWeapons = [
                     ...(weapons.spinal || []),
                     ...(weapons.broadsides || []),
                     ...(weapons.fore || []),
                     ...(weapons.aft || [])
                 ];
-                
                 return allWeapons.find(w => w.id === weaponId);
+            }
+            
+            // 6-point energy demand (ENERGY_RULES)
+            demand6() {
+                const s = this.ship;
+                let cost = 0;
+                cost += ENERGY_RULES.THRUST[s.thrustSetting] ?? 2;
+                cost += ENERGY_RULES.SHIELDS[s.shieldSetting] ?? 2;
+                this.selectedWeapons.forEach(weaponId => {
+                    const w = this.getWeaponById(weaponId);
+                    if (w && (w.arc && (w.arc.includes('broadside') || w.arc === 'SPINAL'))) cost += ENERGY_RULES.BROADSIDE_OR_SPINAL_FIRE;
+                });
+                return cost;
+            }
+            
+            available6() {
+                const s = this.ship;
+                let avail = s.reactorMax ?? ENERGY_RULES.DEFAULT_ENERGY;
+                if (s.runReactorHot) avail += ENERGY_RULES.REACTOR_HOT.EXTRA_ENERGY;
+                return avail;
             }
         }
 
@@ -3388,6 +3317,246 @@
                 HACKED: 0.5        // -50% thrust per hacked engine
             }
         };
+        
+        // Fighter missions: assign in planning; some require LMB target
+        const FIGHTER_MISSIONS = {
+            PATROL: { name: 'Patrol', needsTarget: false, loadout: 'PATROL' },
+            ESCORT: { name: 'Escort', needsTarget: false, loadout: 'ESCORT' },
+            ATTACK: { name: 'Attack', needsTarget: true, loadout: 'ATTACK' },
+            INTERCEPT: { name: 'Intercept', needsTarget: true, loadout: 'INTERCEPT' },
+            CAP: { name: 'Combat Air Patrol', needsTarget: false, loadout: 'CAP' }
+        };
+        
+        // Fighter return: when out of ordnance, low fuel, or mission objective complete
+        const FIGHTER_ORDNANCE_MAX = 4;
+        const FIGHTER_FUEL_MAX = 100;
+        const FIGHTER_FUEL_BINGO = 25;
+        
+        // Drone types - slower than fighters, more endurance than missiles, semi-autonomous swarms
+        const DRONE_TYPES = {
+            AKV: {                     // Autonomous Kill Vehicle - unmanned fighter analogue
+                name: 'AKV Strike Drone',
+                thrust: 5,
+                endurance: 3,          // number of execution phases it can operate before forced return
+                role: 'STRIKE',
+                dogfight: 2,
+                antiShip: 2
+            },
+            ASP: {                     // Autonomous Sensor Platform - recon / painting
+                name: 'ASP Recon Drone',
+                thrust: 4,
+                endurance: 4,
+                role: 'RECON',
+                dogfight: 0,
+                antiShip: 0,
+                sensorBonus: 1.2,      // 20% better sensors
+                paintBonus: 5          // +5% to-hit per active ASP painting a target (capped globally)
+            },
+            STINGER: {                 // Rapid-fire coilgun drone
+                name: 'Stinger Gun Drone',
+                thrust: 5,
+                endurance: 3,
+                role: 'PD_ATTACK',
+                dogfight: 1,
+                antiShip: 1
+            },
+            LASER: {                   // Light laser platform
+                name: 'Laser Gun Drone',
+                thrust: 5,
+                endurance: 3,
+                role: 'LASER',
+                dogfight: 1,
+                antiShip: 1
+            },
+            INTERCEPTOR: {             // High-thrust ramming drone
+                name: 'Interceptor Drone',
+                thrust: 7,
+                endurance: 2,
+                role: 'KAMIKAZE',
+                dogfight: 0,
+                antiShip: 2
+            }
+        };
+        
+        // Crew skill: each station has required skill; crew level gives bonus/penalty; required skill drifts up over time
+        const CREW_SKILL_LEVELS = { GREEN: 0.7, REGULAR: 1.0, VETERAN: 1.15, ACE: 1.25, ELITE: 1.35 };
+        const STATION_SKILL_BONUS = 0.05;   // per level above required
+        const STATION_SKILL_PENALTY = -0.05; // per level below
+        const STATION_SKILL_DRIFT_PER_TURN = 0.02; // required skill increases slowly when crew on station
+        const PILOT_SURVIVAL_CHANCE = 0.5;  // 50% when their fighter is destroyed (single fighter loss); whole flight destroyed = all KIA
+        
+        function applySquadronDestroyed(squadron) {
+            squadron.status = 'DESTROYED';
+            if (squadron.fighters) squadron.fighters.forEach(f => { f.pilotSurvived = false; }); // all crew KIA when whole flight destroyed
+        }
+        
+        function applySingleFighterLoss(squadron, fighterIndex) {
+            const f = squadron.fighters && squadron.fighters[fighterIndex];
+            if (!f) return;
+            f.status = 'DESTROYED';
+            f.pilotSurvived = Math.random() < PILOT_SURVIVAL_CHANCE; // 50% return to ship, get new fighter later
+        }
+        
+        // Initialize crew stations for a ship with randomized crew grades (d100)
+        function initializeCrewStations() {
+            function rollCrewGrade() {
+                const roll = Math.floor(Math.random() * 100) + 1; // 1-100
+                if (roll <= 70) return 'REGULAR';
+                if (roll <= 90) return 'VETERAN';
+                return 'ACE';
+            }
+            const baseRequired = 1.0;
+            const stations = {};
+            [
+                'gunnery',
+                'spinalGunnery',
+                'broadsides',
+                'missileControl',
+                'shields',
+                'pointDefense',
+                'sensors',
+                'ew',
+                'damageControl',
+                'power',
+                'drives',
+                'command',
+                'flightOps'
+            ].forEach(key => {
+                stations[key] = {
+                    requiredSkill: baseRequired,
+                    crewGrade: rollCrewGrade()
+                };
+            });
+            return stations;
+        }
+        
+        // Crew skill: station has required level; crew level gives small bonus/penalty. Required skill drifts up over time.
+        function getStationSkillModifier(ship, stationKey) {
+            if (!ship.crewStations) return 1;
+            const station = ship.crewStations[stationKey];
+            if (!station || station.requiredSkill == null) return 1;
+            const crewLevel = typeof CREW_SKILL_LEVELS !== 'undefined' && station.crewGrade ? (CREW_SKILL_LEVELS[station.crewGrade] ?? 1) : 1;
+            const req = station.requiredSkill;
+            if (crewLevel >= req) return 1 + (crewLevel - req) * STATION_SKILL_BONUS;
+            return 1 + (crewLevel - req) * STATION_SKILL_PENALTY;
+        }
+        
+        // Append a line to the on-screen combat log and keep a bounded history
+        function appendCombatLog(message) {
+            gameState.combatLog = gameState.combatLog || [];
+            const now = new Date();
+            const time = now.toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const entry = `[${time}] ${message}`;
+            gameState.combatLog.push(entry);
+            if (gameState.combatLog.length > 200) {
+                gameState.combatLog.shift();
+            }
+            const logEl = document.getElementById('combatLog');
+            if (logEl) {
+                const line = document.createElement('div');
+                line.textContent = entry;
+                logEl.appendChild(line);
+                while (logEl.childNodes.length > 200) {
+                    logEl.removeChild(logEl.firstChild);
+                }
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        }
+        
+        function toggleCombatLogPanel() {
+            const panel = document.getElementById('combatLogPanel');
+            if (!panel) return;
+            panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
+            // When opening, rebuild from gameState.combatLog to ensure consistency
+            if (panel.style.display === 'block') {
+                const logEl = document.getElementById('combatLog');
+                if (logEl) {
+                    logEl.innerHTML = '';
+                    (gameState.combatLog || []).forEach(entry => {
+                        const line = document.createElement('div');
+                        line.textContent = entry;
+                        logEl.appendChild(line);
+                    });
+                    logEl.scrollTop = logEl.scrollHeight;
+                }
+            }
+        }
+        
+        // Very simple enemy AI for fighter and drone missions
+        function assignEnemyFlightPlans() {
+            if (!gameState.ships || !Array.isArray(gameState.ships)) return;
+            const playerShips = gameState.ships.filter(s => s.team === 'player' && s.status !== 'DESTROYED');
+            if (playerShips.length === 0) return;
+            
+            gameState.ships.forEach(ship => {
+                if (ship.team === 'player' || !ship.fighterManager) return;
+                const manager = ship.fighterManager;
+                manager.squadrons.forEach(sq => {
+                    if (sq.status !== 'HANGAR' || sq.mission) return;
+                    // Pick closest player ship as target
+                    const target = playerShips.reduce((best, candidate) => {
+                        const d = Coordinates.distance(ship.position, candidate.position);
+                        if (!best) return { ship: candidate, dist: d };
+                        return d < best.dist ? { ship: candidate, dist: d } : best;
+                    }, null);
+                    if (!target) return;
+                    const targetShip = target.ship;
+                    let missionType = 'ATTACK';
+                    // Use CAP/PATROL for defensive fighters, ATTACK for strike, ATTACK for drones
+                    if (!sq.isDrone) {
+                        const fType = FIGHTER_TYPES[sq.type] || {};
+                        if (fType.role === 'DEFENSE' || fType.role === 'SPACE_SUPERIORITY') {
+                            missionType = 'CAP';
+                        } else {
+                            missionType = 'ATTACK';
+                        }
+                    } else {
+                        // Drone-specific defaults
+                        if (sq.droneType === 'ASP') {
+                            missionType = 'ATTACK'; // painting + recon
+                        } else if (sq.droneType === 'STINGER' || sq.droneType === 'AKV' || sq.droneType === 'INTERCEPTOR') {
+                            missionType = 'ATTACK';
+                        } else {
+                            missionType = 'PATROL';
+                        }
+                    }
+                    manager.assignMission(sq.id, missionType, targetShip.id);
+                    if (typeof appendCombatLog === 'function') {
+                        appendCombatLog(`${ship.shipName} AI: ${sq.isDrone ? 'Drone' : 'Flight'} ${sq.id} set to ${missionType} vs ${targetShip.shipName || targetShip.class.name}`);
+                    }
+                });
+            });
+        }
+        
+        // Count ASP / recon drones painting a given target
+        function getTargetPaintCount(target) {
+            if (!target) return 0;
+            let count = 0;
+            gameState.ships.forEach(ship => {
+                if (!ship.fighterManager || !ship.fighterManager.squadrons) return;
+                ship.fighterManager.squadrons.forEach(sq => {
+                    if (!sq.isDrone) return;
+                    if (sq.status !== 'DEPLOYED') return;
+                    if (!sq.missionTargetId || sq.missionTargetId !== target.id) return;
+                    if (!sq.droneType || sq.droneType !== 'ASP') return;
+                    count += 1;
+                });
+            });
+            return count;
+        }
+        
+        // Calculate to-hit bonus from ASP / recon drones painting a target
+        function getTargetPaintBonus(attacker, target) {
+            if (!target || !attacker) return 0;
+            let bonus = 0;
+            const count = getTargetPaintCount(target);
+            if (count > 0 && DRONE_TYPES && DRONE_TYPES.ASP) {
+                const per = DRONE_TYPES.ASP.paintBonus || 5;
+                bonus = count * per;
+            }
+            // Cap global painting bonus so it stays "small but non-negligible"
+            return Math.min(bonus, 15);
+        }
         
         // Fighter Types and Operations
         const FIGHTER_TYPES = {
@@ -3504,25 +3673,32 @@
                 this.selectedFighterType = ship.class.weapons.fighters ? ship.class.weapons.fighters.defaultType || 'AVENGER' : 'AVENGER';
                 this.squadrons = [];
                 
-                // Initialize squadrons with 6 fighters each
+                // Initialize squadrons (flights) with 6 fighters each; mission assigned in planning
                 for (let i = 0; i < this.maxSquadrons; i++) {
                     const squadron = {
                         id: i + 1,
                         type: this.selectedFighterType,
                         status: 'HANGAR',
                         fighters: this.createSquadronFighters(this.selectedFighterType),
-                        position: null
+                        position: null,
+                        mission: null,
+                        missionTargetId: null,
+                        loadout: null,
+                        ordnance: typeof FIGHTER_ORDNANCE_MAX !== 'undefined' ? FIGHTER_ORDNANCE_MAX : 4,
+                        fuel: typeof FIGHTER_FUEL_MAX !== 'undefined' ? FIGHTER_FUEL_MAX : 100
                     };
                     this.squadrons.push(squadron);
                 }
+                
+                // Add default drone flights (semi-autonomous swarms) for ships with fighter capability
+                this.addDefaultDrones();
             }
             
-            // Create 6 individual fighters for a squadron
+            // Create 6 individual fighters for a squadron (pilot stays with fighter; 50% survival if single fighter lost)
             createSquadronFighters(fighterType) {
                 const fighters = [];
                 const fighterStats = FIGHTER_TYPES[fighterType];
-                
-                for (let i = 0; i < 6; i++) { // 6 fighters per squadron
+                for (let i = 0; i < 6; i++) {
                     fighters.push({
                         id: i + 1,
                         callsign: this.generateCallsign(),
@@ -3532,10 +3708,10 @@
                         antiShip: fighterStats.antiShip,
                         status: 'ACTIVE',
                         missions: 0,
-                        kills: 0
+                        kills: 0,
+                        pilotSurvived: null
                     });
                 }
-                
                 return fighters;
             }
             
@@ -3582,6 +3758,67 @@
                 });
                 
                 return true;
+            }
+            
+            // Create 6 individual fighters for a drone squadron based on DRONE_TYPES
+            createDroneFighters(droneKey) {
+                const fighters = [];
+                const def = DRONE_TYPES[droneKey];
+                if (!def) return fighters;
+                for (let i = 0; i < 6; i++) {
+                    fighters.push({
+                        id: i + 1,
+                        callsign: this.generateCallsign(),
+                        grade: 'REGULAR',
+                        thrust: def.thrust,
+                        dogfight: def.dogfight,
+                        antiShip: def.antiShip,
+                        status: 'ACTIVE',
+                        missions: 0,
+                        kills: 0,
+                        pilotSurvived: null,
+                        isDrone: true
+                    });
+                }
+                return fighters;
+            }
+            
+            // Add a few default drone flights per carrier-type ship
+            addDefaultDrones() {
+                if (!this.ship.class.weapons || !this.ship.class.weapons.fighters) return;
+                const size = this.ship.class.size || 0;
+                const startId = this.squadrons.length + 1;
+                let nextId = startId;
+                
+                // Simple rule of thumb: bigger ships carry more drones
+                const dronesToAdd = [];
+                if (size >= 10) {
+                    dronesToAdd.push('ASP', 'ASP', 'AKV', 'STINGER');
+                } else if (size >= 7) {
+                    dronesToAdd.push('ASP', 'AKV', 'STINGER');
+                } else if (size >= 4) {
+                    dronesToAdd.push('ASP', 'STINGER');
+                }
+                
+                dronesToAdd.forEach(droneKey => {
+                    if (!DRONE_TYPES[droneKey]) return;
+                    const squadron = {
+                        id: nextId++,
+                        type: 'DRONE',
+                        droneType: droneKey,
+                        isDrone: true,
+                        status: 'HANGAR',
+                        fighters: this.createDroneFighters(droneKey),
+                        position: null,
+                        mission: null,
+                        missionTargetId: null,
+                        loadout: droneKey,
+                        ordnance: typeof FIGHTER_ORDNANCE_MAX !== 'undefined' ? FIGHTER_ORDNANCE_MAX : 4,
+                        fuel: typeof FIGHTER_FUEL_MAX !== 'undefined' ? FIGHTER_FUEL_MAX : 100,
+                        missionTurns: 0
+                    };
+                    this.squadrons.push(squadron);
+                });
             }
             
             // Launch fighters (up to launch rate per turn)
@@ -3639,12 +3876,32 @@
                 return status;
             }
             
-            // Create 6 individual fighters for a squadron
+            assignMission(squadronId, missionType, targetId) {
+                const missionDef = typeof FIGHTER_MISSIONS !== 'undefined' && FIGHTER_MISSIONS[missionType];
+                if (!missionDef) return false;
+                const squadron = this.squadrons.find(s => s.id === squadronId);
+                if (!squadron || squadron.status !== 'HANGAR') return false;
+                squadron.mission = missionType;
+                squadron.missionTargetId = targetId || null;
+                squadron.loadout = missionDef.loadout || missionType;
+                return true;
+            }
+            
+            changeFlightMission(squadronId, missionType, targetId) {
+                const squadron = this.squadrons.find(s => s.id === squadronId);
+                if (!squadron || squadron.status !== 'DEPLOYED') return false;
+                const missionDef = typeof FIGHTER_MISSIONS !== 'undefined' && FIGHTER_MISSIONS[missionType];
+                if (!missionDef) return false;
+                squadron.mission = missionType;
+                squadron.missionTargetId = targetId != null ? targetId : squadron.missionTargetId;
+                return true;
+            }
+            
+            // Create 6 individual fighters for a squadron (duplicate - kept for compatibility)
             createSquadronFighters(fighterType) {
                 const fighters = [];
                 const fighterStats = FIGHTER_TYPES[fighterType];
-                
-                for (let i = 0; i < 6; i++) { // 6 fighters per squadron
+                for (let i = 0; i < 6; i++) {
                     fighters.push({
                         id: i + 1,
                         callsign: this.generateCallsign(),
@@ -3654,10 +3911,10 @@
                         antiShip: fighterStats.antiShip,
                         status: 'ACTIVE',
                         missions: 0,
-                        kills: 0
+                        kills: 0,
+                        pilotSurvived: null
                     });
                 }
-                
                 return fighters;
             }
             
@@ -3956,7 +4213,10 @@
                 armor: { front: {x: 10, y: 10}, rear: {x: 7, y: 7} },
                 weapons: {
                     spinal: [{ type: 'SPINAL_HEAVY', count: 1, name: 'Heavy Spinal Cannon' }],
-                    broadsides: [{ type: 'LASER_HEAVY', count: 16, name: 'Heavy Laser Batteries' }],
+                    broadsides: [
+                        { type: 'LASER_HEAVY', count: 16, name: 'Heavy Laser Batteries', arc: 'left_broadside' },
+                        { type: 'LASER_HEAVY', count: 16, name: 'Heavy Laser Batteries', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 36, total: 36 },
                     fighters: { 
                         onboard: 24, 
@@ -3985,7 +4245,10 @@
                 armor: { front: {x: 7, y: 7}, rear: {x: 5, y: 5} },
                 weapons: {
                     spinal: [{ type: 'SPINAL_MEDIUM', count: 1, name: 'Medium Spinal Cannon' }],
-                    broadsides: [{ type: 'LASER_MEDIUM', count: 12, name: 'Medium Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_MEDIUM', count: 12, name: 'Medium Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_MEDIUM', count: 12, name: 'Medium Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 24, total: 24 },
                     fighters: { 
                         onboard: 18, 
@@ -4014,7 +4277,10 @@
                 armor: { front: {x: 5, y: 5}, rear: {x: 3, y: 3} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_MEDIUM', count: 8, name: 'Medium Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_MEDIUM', count: 8, name: 'Medium Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_MEDIUM', count: 8, name: 'Medium Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 12, total: 12 },
                     fighters: { 
                         onboard: 6, 
@@ -4043,7 +4309,10 @@
                 armor: { front: {x: 4, y: 4}, rear: {x: 2, y: 2} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 8, total: 8 },
                     fighters: { 
                         onboard: 0, 
@@ -4072,7 +4341,10 @@
                 armor: { front: {x: 3, y: 3}, rear: {x: 2, y: 2} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_LIGHT', count: 4, name: 'Light Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 4, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 4, name: 'Light Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 6, total: 6 },
                     fighters: { 
                         onboard: 0, 
@@ -4101,7 +4373,10 @@
                 armor: { front: {x: 2, y: 2}, rear: {x: 1, y: 1} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_LIGHT', count: 2, name: 'Light Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 2, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 2, name: 'Light Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 4, total: 4 },
                     fighters: { 
                         onboard: 0, 
@@ -4130,7 +4405,10 @@
                 armor: { front: {x: 1, y: 1}, rear: {x: 1, y: 1} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_LIGHT', count: 1, name: 'Light Laser Array' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 1, name: 'Light Laser Array', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 1, name: 'Light Laser Array', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 2, total: 2 },
                     fighters: { 
                         onboard: 0, 
@@ -4165,8 +4443,10 @@
                 weapons: {
                     spinal: [{ type: 'TYPE_E_SPINAL', count: 2, name: 'Twin Type E Spinal Mounts' }],
                     broadsides: [
-                        { type: 'BAY_37_5_20', count: 500, name: '37.5/20 Weapon Bays' },
-                        { type: 'BAY_37_5_25', count: 150, name: '37.5/25 Weapon Bays' }
+                        { type: 'BAY_37_5_20', count: 500, name: '37.5/20 Weapon Bays', arc: 'left_broadside' },
+                        { type: 'BAY_37_5_20', count: 500, name: '37.5/20 Weapon Bays', arc: 'right_broadside' },
+                        { type: 'BAY_37_5_25', count: 150, name: '37.5/25 Weapon Bays', arc: 'left_broadside' },
+                        { type: 'BAY_37_5_25', count: 150, name: '37.5/25 Weapon Bays', arc: 'right_broadside' }
                     ],
                     missiles: { remaining: 600, total: 600 },
                     fighters: { 
@@ -4196,7 +4476,10 @@
                 armor: { front: {x: 12, y: 12}, rear: {x: 9, y: 9} },
                 weapons: {
                     spinal: [{ type: 'SPINAL_HEAVY', count: 1, name: 'Heavy Spinal Cannon' }],
-                    broadsides: [{ type: 'BAY_37_5_20', count: 120, name: '37.5/20 Weapon Bays' }],
+                    broadsides: [
+                        { type: 'BAY_37_5_20', count: 120, name: '37.5/20 Weapon Bays', arc: 'left_broadside' },
+                        { type: 'BAY_37_5_20', count: 120, name: '37.5/20 Weapon Bays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 48, total: 48 },
                     fighters: { 
                         onboard: 24, 
@@ -4225,7 +4508,10 @@
                 armor: { front: {x: 9, y: 9}, rear: {x: 6, y: 6} },
                 weapons: {
                     spinal: [{ type: 'SPINAL_MEDIUM', count: 1, name: 'Medium Spinal Cannon' }],
-                    broadsides: [{ type: 'BAY_37_5_20', count: 80, name: '37.5/20 Weapon Bays' }],
+                    broadsides: [
+                        { type: 'BAY_37_5_20', count: 80, name: '37.5/20 Weapon Bays', arc: 'left_broadside' },
+                        { type: 'BAY_37_5_20', count: 80, name: '37.5/20 Weapon Bays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 32, total: 32 },
                     fighters: { 
                         onboard: 18, 
@@ -4254,7 +4540,10 @@
                 armor: { front: {x: 6, y: 6}, rear: {x: 4, y: 4} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'BAY_37_5_20', count: 40, name: '37.5/20 Weapon Bays' }],
+                    broadsides: [
+                        { type: 'BAY_37_5_20', count: 40, name: '37.5/20 Weapon Bays', arc: 'left_broadside' },
+                        { type: 'BAY_37_5_20', count: 40, name: '37.5/20 Weapon Bays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 16, total: 16 },
                     fighters: { 
                         onboard: 6, 
@@ -4283,7 +4572,10 @@
                 armor: { front: {x: 5, y: 5}, rear: {x: 3, y: 3} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 10, total: 10 },
                     fighters: { 
                         onboard: 0, 
@@ -4312,7 +4604,10 @@
                 armor: { front: {x: 4, y: 4}, rear: {x: 3, y: 3} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_LIGHT', count: 3, name: 'Light Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 3, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 3, name: 'Light Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 8, total: 8 },
                     fighters: { 
                         onboard: 0, 
@@ -4341,7 +4636,10 @@
                 armor: { front: {x: 3, y: 3}, rear: {x: 2, y: 2} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_LIGHT', count: 2, name: 'Light Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 2, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 2, name: 'Light Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 6, total: 6 },
                     fighters: { 
                         onboard: 0, 
@@ -4370,7 +4668,10 @@
                 armor: { front: {x: 2, y: 2}, rear: {x: 1, y: 1} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_LIGHT', count: 1, name: 'Light Laser Array' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 1, name: 'Light Laser Array', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 1, name: 'Light Laser Array', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 3, total: 3 },
                     fighters: { 
                         onboard: 0, 
@@ -4417,7 +4718,10 @@
                 armor: { front: {x: 5, y: 5}, rear: {x: 3, y: 3} },
                 weapons: {
                     spinal: [],
-                    broadsides: [{ type: 'LASER_MEDIUM', count: 8, name: 'Medium Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_MEDIUM', count: 8, name: 'Medium Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_MEDIUM', count: 8, name: 'Medium Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 12, total: 12 },
                     fighters: { 
                         onboard: 6, 
@@ -4431,12 +4735,33 @@
 
         // UPDATE #5: Detection & Identification System
         const DetectionSystem = {
+            getShipMaxWeaponRange(ship) {
+                if (!ship || !ship.class || !ship.class.weapons) return 200;
+                let maxR = 0;
+                ['spinal','fore','aft'].forEach(cat => {
+                    const arr = ship.class.weapons[cat];
+                    if (!Array.isArray(arr)) return;
+                    arr.forEach(w => {
+                        const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
+                        if (wt && wt.maxRange) maxR = Math.max(maxR, wt.maxRange);
+                    });
+                });
+                (ship.class.weapons.broadsides || []).forEach(w => {
+                    const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
+                    if (wt && wt.maxRange) maxR = Math.max(maxR, wt.maxRange);
+                });
+                const missiles = ship.class.weapons.missiles;
+                if (missiles && missiles.type) {
+                    const mt = (typeof window !== 'undefined' && window.MISSILE_TYPES && window.MISSILE_TYPES[missiles.type]) ? window.MISSILE_TYPES[missiles.type] : (typeof WEAPON_TYPES !== 'undefined' && WEAPON_TYPES[missiles.type]) ? WEAPON_TYPES[missiles.type] : null;
+                    if (mt && mt.maxRange) maxR = Math.max(maxR, mt.maxRange);
+                }
+                return maxR || 200;
+            },
             calculateSensorRange(ship, mode = 'PASSIVE') {
-                const baseRange = mode === 'ACTIVE' ? 50 : 30;
-                const sizeModifier = Math.max(1, ship.class.size / 5);
-                const ewModifier = ship.class.ew / 10;
-                const crewModifier = CREW_QUALITY[ship.class.crew.quality].modifier;
-                return Math.floor(baseRange * sizeModifier * (1 + ewModifier) * crewModifier);
+                const maxWeaponRange = this.getShipMaxWeaponRange(ship);
+                const sensorRange = maxWeaponRange * 2;
+                const modeMult = mode === 'ACTIVE' ? 1.2 : 1.0;
+                return Math.floor(sensorRange * modeMult);
             },
             
             calculateSignature(ship) {
@@ -4479,8 +4804,17 @@
                 // Store original captain from ship class as backup
                 this.originalCaptain = shipClass.crew?.captain || 'Unknown';
                 
+                // Bridge crew stations - randomized crew grades on new ship
+                this.crewStations = initializeCrewStations();
+                
                 // UPDATE #7: Initialize energy management system
                 this.energyManager = new ShipEnergyManager(this);
+                // 6-point energy (dual-phase design): default 6, can drop from reactor hot
+                this.reactorMax = ENERGY_RULES.DEFAULT_ENERGY;
+                this.thrustSetting = 'FULL';   // ZERO|HALF|FULL|PLUS_50|DOUBLE
+                this.shieldSetting = 'FULL';   // ZERO|HALF|FULL|PLUS_50|PLUS_100
+                this.runReactorHot = false;
+                this.pointDefenseMode = POINT_DEFENSE_MODES.POINT; // point|area|off
                 
                 // UPDATE #10: Initialize missile management system
                 if (shipClass.weapons && shipClass.weapons.missiles) {
@@ -5115,114 +5449,192 @@
             }).join('');
         }
 
-        // UNIFIED 6-PHASE SYSTEM - Fixed conflicting implementations
+        // Dual-phase: PLANNING (0) -> EXECUTION (1). Execute Turn starts 5-second real-time playback.
         function nextPhase() {
-            // Use simple phase index system (0-5 for 6 phases)
             if (gameState.currentPhase === undefined) gameState.currentPhase = 0;
+            if (gameState.currentPhase !== 0) return; // Only advance from PLANNING via Execute Turn
             
-            if (gameState.currentPhase === GAME_PHASES.length - 1) {
-                // End of turn - advance turn and reset to phase 0
-                gameState.currentTurn++;
-                gameState.turn = gameState.currentTurn;
-                gameState.currentPhase = 0;
-                gameState.commandPoints++;
-                
-                // Clear ship orders for new turn
-                if (gameState.shipOrders) {
-                    gameState.shipOrders.clear();
-                }
-                
-                // Reset ship statuses for new turn
-                gameState.ships.forEach(ship => {
-                    if (ship.team === 'player' && ship.status !== 'DESTROYED') {
-                        ship.ordersConfirmed = false;
-                        ship.status = 'READY';
-                    }
-                });
-                
-                // Process system recovery
-                if (typeof processSystemRecovery === 'function') {
-                    processSystemRecovery();
-                }
-                
-                // Scenario reinforcements (e.g. "TOG reinforcements arrive turn 6")
-                if (gameState.currentScenario?.specialRules) {
-                    const reinfRule = gameState.currentScenario.specialRules.find(r => 
-                        typeof r === 'string' && r.toLowerCase().includes('reinforcement') && r.match(/turn\s*(\d+)/i));
-                    if (reinfRule) {
-                        const m = reinfRule.match(/turn\s*(\d+)/i);
-                        const arriveTurn = m ? parseInt(m[1], 10) : 6;
-                        if (gameState.currentTurn === arriveTurn && gameState.ships) {
-                            const classes = { ...(SHIP_CLASSES || {}), ...(typeof ENHANCED_SHIP_CLASSES !== 'undefined' ? ENHANCED_SHIP_CLASSES : {}) };
-                            const enemyClasses = ['CRUISER', 'DESTROYER', 'REAPER_DESTROYER', 'SCORPION_FRIGATE'].filter(k => classes[k]);
-                            if (enemyClasses.length > 0) {
-                                const cls = classes[enemyClasses[Math.floor(Math.random() * enemyClasses.length)]];
-                                const id = 'reinforcement_' + Date.now();
-                                const ship = new Ship(id, cls, { x: 90, y: 0 }, 180, 'enemy');
-                                gameState.ships.push(ship);
-                                console.log('Reinforcements arrived: ' + ship.class.name);
-                            }
-                        }
-                    }
-                }
-                
-                // Reset fighter squadron movement for new turn
-                if (gameState.fighterSquadrons) {
-                    gameState.fighterSquadrons.forEach(sq => { if (sq.resetMovement) sq.resetMovement(); });
-                }
-                
-                const phaseObj = GAME_PHASES[gameState.currentPhase];
-                gameState.phase = phaseObj.name;
-                console.log(`New turn ${gameState.currentTurn} started - Phase: ${phaseObj.displayName}`);
-            } else {
-                // Advance to next phase
-                gameState.currentPhase++;
-                const phaseObj = GAME_PHASES[gameState.currentPhase];
-                gameState.phase = phaseObj.name;
-                console.log(`Advanced to phase ${gameState.currentPhase}: ${phaseObj.displayName}`);
+            const playerShips = gameState.ships.filter(s => s.team === 'player' && s.status !== 'DESTROYED');
+            const allConfirmed = playerShips.length > 0 && playerShips.every(s => s.ordersConfirmed);
+            if (!allConfirmed) {
+                if (typeof alert === 'function') alert('All player ships must have confirmed orders before executing the turn.');
+                return;
             }
             
-            // Update UI displays
-            const phaseElement = document.getElementById('currentPhase');
-            const turnElement = document.getElementById('currentTurn');
-            const commandPointsElement = document.getElementById('commandPoints');
-            const phaseObj = GAME_PHASES[gameState.currentPhase];
+            // PLANNING -> EXECUTION: start 5-second execution
+            gameState.currentPhase = 1;
+            gameState.phase = 'EXECUTION';
+            gameState.executionPaused = false;
+            gameState.executionStartTime = Date.now();
+            gameState.executionSnapshots = new Map();
+            gameState.ships.forEach(ship => {
+                if (ship.status === 'DESTROYED') return;
+                gameState.executionSnapshots.set(ship.id, {
+                    position: { x: ship.position.x, y: ship.position.y },
+                    facing: ship.facing,
+                    speed: ship.speed
+                });
+            });
+            startExecutionPhase();
             
+            const phaseObj = GAME_PHASES[1];
+            const phaseElement = document.getElementById('currentPhase');
             if (phaseElement && phaseObj) {
                 phaseElement.textContent = phaseObj.displayName;
-                phaseElement.className = `status-${phaseObj.displayName.toLowerCase().replace(/\s+/g, '-')}`;
+                phaseElement.className = 'status-movement';
             }
-            if (turnElement) turnElement.textContent = gameState.currentTurn || gameState.turn;
-            if (commandPointsElement) commandPointsElement.textContent = gameState.commandPoints;
-            
-            // Execute phase-specific logic
-            executePhaseLogic();
-
-            // Tutorial hooks for phase advancement
-            if (gameState.tutorial && gameState.tutorial.active) {
-                const phaseName = GAME_PHASES[gameState.currentPhase]?.name;
-                if (phaseName === 'MOVEMENT') {
-                    advanceTutorial('phase_MOVEMENT');
-                } else if (phaseName === 'FIGHTER') {
-                    advanceTutorial('phase_FIGHTER');
-                } else if (phaseName === 'FIRING') {
-                    advanceTutorial('phase_FIRING');
-                } else if (phaseName === 'RESOLUTION') {
-                    advanceTutorial('phase_RESOLUTION');
-                } else if (phaseName === 'PLANNING' && gameState.currentTurn > 1) {
-                    advanceTutorial('phase_PLANNING_NEXT');
-                }
-            }
-            
-            // Update displays
+            const overlayEl = document.getElementById('executionCompleteOverlay');
+            if (overlayEl) overlayEl.style.display = 'none';
             updateDisplay();
-            
-            // Audio feedback
-            if (typeof audioSystem !== 'undefined') {
-                audioSystem.playSound('hit', 0.3);
-            }
+            if (typeof audioSystem !== 'undefined') audioSystem.playSound('hit', 0.3);
         }
-
+        
+        function startExecutionPhase() {
+            gameState.movementAnimations = new Map();
+            gameState.ships.forEach(ship => {
+                if (ship.team !== 'player' || !ship.ordersConfirmed) return;
+                const orders = gameState.shipOrders.get(ship.id);
+                if (orders && orders.ghostPosition) {
+                    const thrustRot = orders.thrustSpentOnRotation || 0;
+                    const thrustMove = orders.thrustSpentOnMovement || 0;
+                    const total = thrustRot + thrustMove;
+                    gameState.movementAnimations.set(ship.id, {
+                        ship: ship,
+                        startPos: { x: ship.position.x, y: ship.position.y },
+                        endPos: { x: orders.ghostPosition.x, y: orders.ghostPosition.y },
+                        startFacing: ship.facing,
+                        endFacing: orders.facing != null ? orders.facing : (orders.ghostFacing != null ? orders.ghostFacing : ship.facing),
+                        thrustRot: thrustRot,
+                        thrustMove: thrustMove,
+                        totalThrust: total,
+                        progress: 0,
+                        orders: orders
+                    });
+                }
+            });
+            // Simple enemy AI: assign basic attack missions to enemy flights/drones before launch
+            assignEnemyFlightPlans();
+            // Launch fighter flights that have mission assigned (dual-phase: launch during execution)
+            gameState.ships.forEach(ship => {
+                if (!ship.fighterManager || ship.team !== 'player') return;
+                ship.fighterManager.squadrons.forEach(sq => {
+                    if (sq.status === 'HANGAR' && sq.mission != null) {
+                        sq.status = 'DEPLOYED';
+                        sq.position = { x: ship.position.x, y: ship.position.y };
+                        if (sq.ordnance == null) sq.ordnance = typeof FIGHTER_ORDNANCE_MAX !== 'undefined' ? FIGHTER_ORDNANCE_MAX : 4;
+                        if (sq.fuel == null) sq.fuel = typeof FIGHTER_FUEL_MAX !== 'undefined' ? FIGHTER_FUEL_MAX : 100;
+                        sq.missionTurns = 0;
+                    }
+                });
+            });
+            // Execution turn: consume ordnance/fuel and mark returns
+            gameState.ships.forEach(ship => {
+                if (!ship.fighterManager) return;
+                ship.fighterManager.squadrons.forEach(sq => {
+                    if (sq.status !== 'DEPLOYED') return;
+                    sq.missionTurns = (sq.missionTurns || 0) + 1;
+                    // Basic fuel usage per execution turn
+                    if (typeof FIGHTER_FUEL_MAX !== 'undefined') {
+                        sq.fuel = (sq.fuel != null ? sq.fuel : FIGHTER_FUEL_MAX) - 20;
+                    }
+                    // Basic ordnance use for attack / intercept style missions
+                    if (sq.mission && FIGHTER_MISSIONS && (sq.mission === 'ATTACK' || sq.mission === 'INTERCEPT')) {
+                        sq.ordnance = (sq.ordnance != null ? sq.ordnance : (FIGHTER_ORDNANCE_MAX || 4)) - 1;
+                    }
+                    const fuel = sq.fuel != null ? sq.fuel : FIGHTER_FUEL_MAX;
+                    const ord = sq.ordnance != null ? sq.ordnance : FIGHTER_ORDNANCE_MAX;
+                    const targetShip = sq.missionTargetId ? gameState.ships.find(s => s.id === sq.missionTargetId) : null;
+                    const targetDestroyed = targetShip && targetShip.status === 'DESTROYED';
+                    const lowFuel = typeof FIGHTER_FUEL_BINGO !== 'undefined' ? fuel <= FIGHTER_FUEL_BINGO : false;
+                    if (ord <= 0 || lowFuel || targetDestroyed) {
+                        sq.status = 'RETURNING';
+                        if (typeof appendCombatLog === 'function') {
+                            const reason = ord <= 0 ? 'out of ordnance' : (lowFuel ? 'low fuel' : 'target destroyed');
+                            appendCombatLog(`${ship.shipName}: ${sq.isDrone ? 'Drone' : 'Flight'} ${sq.id} returning (${reason})`);
+                        }
+                    }
+                });
+            });
+            if (typeof executeFiringPhase === 'function') executeFiringPhase();
+        }
+        
+        function replayExecution() {
+            const overlay = document.getElementById('executionCompleteOverlay');
+            if (overlay) overlay.style.display = 'none';
+            if (!gameState.executionSnapshots) return;
+            gameState.executionSnapshots.forEach((snap, id) => {
+                const ship = gameState.ships.find(s => s.id === id);
+                if (ship && ship.status !== 'DESTROYED') {
+                    ship.position.x = snap.position.x;
+                    ship.position.y = snap.position.y;
+                    ship.facing = snap.facing;
+                    if (snap.speed != null) ship.speed = snap.speed;
+                }
+            });
+            gameState.executionPaused = false;
+            gameState.executionStartTime = Date.now();
+            startExecutionPhase();
+            updateDisplay();
+        }
+        
+        function advanceToPlanning() {
+            const overlay = document.getElementById('executionCompleteOverlay');
+            if (overlay) overlay.style.display = 'none';
+            gameState.currentPhase = 0;
+            gameState.phase = 'PLANNING';
+            gameState.executionPaused = false;
+            gameState.executionStartTime = null;
+            gameState.movementAnimations = null;
+            gameState.currentTurn++;
+            gameState.turn = gameState.currentTurn;
+            gameState.commandPoints++;
+            if (gameState.shipOrders) gameState.shipOrders.clear();
+            gameState.ships.forEach(ship => {
+                if (ship.team === 'player' && ship.status !== 'DESTROYED') {
+                    ship.ordersConfirmed = false;
+                    ship.status = 'READY';
+                }
+                // Fighters: any flights marked RETURNING are back in hangar at start of next planning phase
+                if (ship.fighterManager && ship.fighterManager.squadrons) {
+                    ship.fighterManager.squadrons.forEach(sq => {
+                        if (sq.status === 'RETURNING') {
+                            sq.status = 'HANGAR';
+                            sq.position = null;
+                            // Reset per-turn mission counters; loadout and mission persist
+                            sq.missionTurns = 0;
+                            if (typeof appendCombatLog === 'function') {
+                                appendCombatLog(`${ship.shipName}: ${sq.isDrone ? 'Drone' : 'Flight'} ${sq.id} is now back in hangar`);
+                            }
+                        }
+                    });
+                }
+            });
+            if (typeof processSystemRecovery === 'function') processSystemRecovery();
+            gameState.ships.forEach(ship => {
+                if (ship.runReactorHot && ship.reactorMax > 1 && Math.random() < (ENERGY_RULES.REACTOR_HOT.PERMANENT_REDUCE_CHANCE || 0.2)) {
+                    ship.reactorMax--;
+                    console.log(`${ship.shipName} reactor damaged: max energy now ${ship.reactorMax}`);
+                    if (typeof appendCombatLog === 'function') {
+                        appendCombatLog(`${ship.shipName}: reactor damage from running hot (max energy now ${ship.reactorMax})`);
+                    }
+                }
+            });
+            if (gameState.fighterSquadrons) {
+                gameState.fighterSquadrons.forEach(sq => { if (sq.resetMovement) sq.resetMovement(); });
+            }
+            const phaseObj = GAME_PHASES[0];
+            const phaseElement = document.getElementById('currentPhase');
+            if (phaseElement && phaseObj) {
+                phaseElement.textContent = phaseObj.displayName;
+                phaseElement.className = 'status-planning';
+            }
+            const turnEl = document.getElementById('currentTurn');
+            const cpEl = document.getElementById('commandPoints');
+            if (turnEl) turnEl.textContent = gameState.currentTurn;
+            if (cpEl) cpEl.textContent = gameState.commandPoints;
+            updateDisplay();
+        }
+        
         // Check if current subphase requirements are met
         function canAdvanceSubphase() {
             if (gameState.phase !== 'PLANNING') return true;
@@ -5290,42 +5702,20 @@
             }
         }
 
-        // Execute phase-specific logic
+        // Execute phase-specific logic (dual-phase: PLANNING / EXECUTION)
         function executePhaseLogic() {
             switch (gameState.phase) {
                 case 'PLANNING':
-                    console.log(`Planning Phase ${gameState.subphase} - Issue orders to ships`);
+                    console.log('Planning Phase - Issue orders to ships');
                     break;
-                    
-                case 'MOVEMENT':
-                    // Movement only: no automatic weapon fire (firing is in FIRING phase only)
-                    console.log('Movement Phase - Ships execute movement orders');
-                    executeMovementPhase();
-                    break;
-                    
-                case 'FIGHTER':
-                    console.log('Fighter Phase - Issue fighter orders');
-                    break;
-                    
-                case 'FIGHTER_MOVEMENT':
-                    console.log('Fighter Movement Phase - Fighters execute orders');
-                    executeFighterMovement();
-                    break;
-                    
-                case 'FIRING':
-                    console.log('Firing Phase - Weapons fire');
-                    break;
-                    
-                case 'RESOLUTION':
-                    console.log('Resolution Phase - Resolve damage and effects');
-                    executeResolutionPhase();
+                case 'EXECUTION':
+                    console.log('Execution Phase - Movement and combat over 5 seconds');
                     break;
             }
         }
 
-        // UPDATE #6: Phase execution functions
+        // Build movement animations from orders (used by startExecutionPhase)
         function executeMovementPhase() {
-            // Start smooth curve animations: rotate over first (thrustRot/totalThrust) of move, then move to ghost
             gameState.movementAnimations = new Map();
             gameState.ships.forEach(ship => {
                 if (ship.team === 'player' && ship.ordersConfirmed) {
@@ -5647,6 +6037,12 @@
                 const distance = Coordinates.distance(ship.position, { x, y });
                 return distance <= ship.class.size && ship.status !== 'DESTROYED';
             });
+            
+            // LMB on enemy to set fighter mission target (planning phase)
+            if (gameState.awaitingFighterTargetClick && clickedShip && gameState.selectedShip && clickedShip.team !== gameState.selectedShip.team) {
+                if (typeof completeFighterTargetClick === 'function') completeFighterTargetClick(clickedShip.id);
+                return;
+            }
             
             // LMB again to lock ghost (exit ghost edit mode)
             if (gameState.ghostEditMode) {
@@ -6028,6 +6424,16 @@
                     hitChance -= conditions.asteroidRU * 10;
                 }
                 
+                // Crew station skill (gunnery)
+                if (typeof getStationSkillModifier === 'function') {
+                    hitChance *= getStationSkillModifier(attacker, 'gunnery');
+                }
+                
+                // Recon painting from ASP drones
+                if (typeof getTargetPaintBonus === 'function') {
+                    hitChance += getTargetPaintBonus(attacker, target);
+                }
+                
                 // Clamp to valid range
                 hitChance = Math.max(5, Math.min(95, hitChance));
                 
@@ -6093,6 +6499,16 @@
                     hitChance -= conditions.asteroidRU * 10;
                 }
                 
+                // Crew station skill (spinal gunnery)
+                if (typeof getStationSkillModifier === 'function') {
+                    hitChance *= getStationSkillModifier(attacker, 'spinalGunnery' in (attacker.crewStations || {}) ? 'spinalGunnery' : 'gunnery');
+                }
+                
+                // Recon painting from ASP drones
+                if (typeof getTargetPaintBonus === 'function') {
+                    hitChance += getTargetPaintBonus(attacker, target);
+                }
+                
                 // Clamp to valid range
                 hitChance = Math.max(5, Math.min(95, hitChance));
                 
@@ -6140,6 +6556,16 @@
                 }
                 if (conditions.asteroidRU) {
                     hitChance -= conditions.asteroidRU * 10;
+                }
+                
+                // Crew station skill (missile fire control)
+                if (typeof getStationSkillModifier === 'function') {
+                    hitChance *= getStationSkillModifier(attacker, 'missileControl' in (attacker.crewStations || {}) ? 'missileControl' : 'gunnery');
+                }
+                
+                // Recon painting from ASP drones
+                if (typeof getTargetPaintBonus === 'function') {
+                    hitChance += getTargetPaintBonus(attacker, target);
                 }
                 
                 // Clamp to valid range
@@ -7303,20 +7729,31 @@
                     const arcKey = arcsByKey[w.arc] || (cat === 'spinal' ? 'SPINAL' : (cat === 'fore' ? 'FORE' : 'AFT'));
                     const arcDef = WEAPON_ARCS[arcKey] || WEAPON_ARCS.FORE;
                     const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
-                    const range = ((wt && wt.maxRange) ? wt.maxRange : 400) * (typeof WEAPON_ARC_DISPLAY_SCALE !== 'undefined' ? WEAPON_ARC_DISPLAY_SCALE : 1);
+                    const range = ((wt && wt.maxRange) ? wt.maxRange : 200) * (typeof WEAPON_ARC_DISPLAY_SCALE !== 'undefined' ? WEAPON_ARC_DISPLAY_SCALE : 1);
                     const fillStyle = arcColors[arcKey] || 'rgba(100,100,255,0.15)';
                     const strokeStyle = strokeColors[arcKey] || '#666';
                     drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, fillStyle, strokeStyle);
                 });
             });
+            // Rule: broadsides always come in pairs — if one side exists, the other is identical
             (ship.class.weapons.broadsides || []).forEach(w => {
-                const arcKey = (w.arc && w.arc.includes('left')) ? 'LEFT_BROADSIDE' : 'RIGHT_BROADSIDE';
-                const arcDef = WEAPON_ARCS[arcKey] || WEAPON_ARCS.LEFT_BROADSIDE;
                 const wt = typeof WEAPON_TYPES !== 'undefined' && w.type ? WEAPON_TYPES[w.type] : null;
-                const range = ((wt && wt.maxRange) ? wt.maxRange : 400) * (typeof WEAPON_ARC_DISPLAY_SCALE !== 'undefined' ? WEAPON_ARC_DISPLAY_SCALE : 1);
-                const fillStyle = arcColors[arcKey] || 'rgba(255,200,0,0.2)';
-                const strokeStyle = strokeColors[arcKey] || '#ddbb00';
-                drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, fillStyle, strokeStyle);
+                const range = ((wt && wt.maxRange) ? wt.maxRange : 200) * (typeof WEAPON_ARC_DISPLAY_SCALE !== 'undefined' ? WEAPON_ARC_DISPLAY_SCALE : 1);
+                if (!w.arc || w.arc === 'broadside') {
+                    // No side specified: draw both port and starboard (identical)
+                    ['LEFT_BROADSIDE', 'RIGHT_BROADSIDE'].forEach(arcKey => {
+                        const arcDef = WEAPON_ARCS[arcKey] || WEAPON_ARCS.LEFT_BROADSIDE;
+                        const fillStyle = arcColors[arcKey] || 'rgba(255,200,0,0.2)';
+                        const strokeStyle = strokeColors[arcKey] || '#ddbb00';
+                        drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, fillStyle, strokeStyle);
+                    });
+                } else {
+                    const arcKey = w.arc.includes('left') ? 'LEFT_BROADSIDE' : 'RIGHT_BROADSIDE';
+                    const arcDef = WEAPON_ARCS[arcKey] || WEAPON_ARCS.LEFT_BROADSIDE;
+                    const fillStyle = arcColors[arcKey] || 'rgba(255,200,0,0.2)';
+                    const strokeStyle = strokeColors[arcKey] || '#ddbb00';
+                    drawArc(wx, wy, range, arcDef.direction || 0, arcDef.angle || 90, fillStyle, strokeStyle);
+                }
             });
         }
         
@@ -8106,6 +8543,23 @@
                     enemyShips: ['CRUISER', 'DESTROYER', 'FRIGATE', 'CORVETTE']
                 }
             },
+            CARRIER_DUEL: {
+                name: 'Carrier Duel (Test)',
+                description: 'Symmetric carrier engagement to test fighters, drones, missiles, and PD.',
+                fleetPoints: { player: 700, enemy: 700 },
+                objectives: {
+                    primary: ['Destroy enemy flagship carrier'],
+                    bonus: ['Keep your carrier alive', 'Shoot down enemy fighters and drones']
+                },
+                timeLimit: 10,
+                difficulty: 'Normal',
+                terrain: 'OPEN_SPACE',
+                setup: {
+                    // Ships with fighter capacity are assumed to be defined in SHIP_CLASSES
+                    playerShips: ['SHIVA_SUPERDREADNOUGHT', 'CRUISER', 'DESTROYER'],
+                    enemyShips: ['BATTLESHIP', 'CRUISER', 'DESTROYER']
+                }
+            },
             
             // NEW: BLACK HOLE SCENARIOS
             GRAVITATIONAL_MAELSTROM: {
@@ -8494,8 +8948,10 @@
                 weapons: {
                     spinal: [{ type: 'PARTICLE_BEAM', count: 1, name: 'Type-E Spinal Mount' }],
                     broadsides: [
-                        { type: 'LASER_HEAVY', count: 3, name: 'Heavy Laser Arrays' },
-                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays' }
+                        { type: 'LASER_HEAVY', count: 3, name: 'Heavy Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_HEAVY', count: 3, name: 'Heavy Laser Arrays', arc: 'right_broadside' },
+                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays', arc: 'right_broadside' }
                     ],
                     missiles: { remaining: 18, total: 18 },
                     fighters: { onboard: 8, total: 8 }
@@ -8523,8 +8979,10 @@
                 weapons: {
                     spinal: [], // No spinal weapons for destroyers
                     broadsides: [
-                        { type: 'LASER_MEDIUM', count: 1, name: 'Medium Laser' },
-                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays' }
+                        { type: 'LASER_MEDIUM', count: 1, name: 'Medium Laser', arc: 'left_broadside' },
+                        { type: 'LASER_MEDIUM', count: 1, name: 'Medium Laser', arc: 'right_broadside' },
+                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays', arc: 'right_broadside' }
                     ],
                     missiles: { remaining: 6, total: 6 },
                     fighters: { onboard: 0, total: 0 }
@@ -8550,7 +9008,10 @@
                 },
                 weapons: {
                     spinal: [], // No spinal weapons for frigates
-                    broadsides: [{ type: 'LASER_LIGHT', count: 4, name: 'Light Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 4, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 4, name: 'Light Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 3, total: 3 },
                     fighters: { onboard: 0, total: 0 }
                 }
@@ -8575,7 +9036,10 @@
                 },
                 weapons: {
                     spinal: [], // No spinal weapons for corvettes
-                    broadsides: [{ type: 'LASER_LIGHT', count: 3, name: 'Light Laser Arrays' }],
+                    broadsides: [
+                        { type: 'LASER_LIGHT', count: 3, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 3, name: 'Light Laser Arrays', arc: 'right_broadside' }
+                    ],
                     missiles: { remaining: 2, total: 2 },
                     fighters: { onboard: 0, total: 0 }
                 }
@@ -8601,8 +9065,10 @@
                 weapons: {
                     spinal: [], // No spinal weapons for light cruisers
                     broadsides: [
-                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays' },
-                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays' }
+                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_MEDIUM', count: 4, name: 'Medium Laser Arrays', arc: 'right_broadside' },
+                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays', arc: 'left_broadside' },
+                        { type: 'LASER_LIGHT', count: 6, name: 'Light Laser Arrays', arc: 'right_broadside' }
                     ],
                     missiles: { remaining: 8, total: 8 },
                     fighters: { onboard: 0, total: 0 }
@@ -9237,6 +9703,43 @@
                 render();
             }
         }
+        
+        function startCarrierDuel() {
+            console.log('Starting Carrier Duel test scenario...');
+            gameState.ghostEditMode = false;
+            gameState.movementAnimations = null;
+            gameState.currentPhase = 0;
+            gameState.phase = 'PLANNING';
+            gameState.subphase = 'A';
+            gameState.turn = 1;
+            gameState.currentTurn = 1;
+            gameState.commandPoints = 3;
+            gameState.phaseComplete = false;
+            gameState.allOrdersConfirmed = false;
+            gameState.shipOrders.clear();
+            gameState.selectedShip = null;
+            
+            if (initializeScenario('CARRIER_DUEL')) {
+                const phaseObj = GAME_PHASES[0];
+                const phaseEl = document.getElementById('currentPhase');
+                const turnEl = document.getElementById('currentTurn');
+                if (phaseEl && phaseObj) phaseEl.textContent = phaseObj.displayName;
+                if (turnEl) turnEl.textContent = '1';
+                
+                console.log('Carrier Duel ships created:', gameState.ships.length);
+                gameState.ships.forEach(ship => {
+                    console.log(`- ${ship.id}: ${ship.class.name} at (${ship.position.x}, ${ship.position.y})`);
+                });
+                
+                updatePanelVisibility();
+                updateDisplay();
+                render();
+                console.log('Carrier Duel initialization complete');
+            } else {
+                console.error('Failed to initialize CARRIER_DUEL scenario, falling back to default new battle');
+                startNewBattle();
+            }
+        }
 
         // Debug function to check ship visibility
         function debugShips() {
@@ -9531,8 +10034,10 @@
             
             // Execute missile attack
             const result = MissileCombatSystem.resolveMissileAttack(shooter, currentSalvoTarget);
-            
             console.log(`Missile salvo: ${result.hits} hits for ${result.damage} damage`);
+            if (typeof appendCombatLog === 'function') {
+                appendCombatLog(`Missile salvo from ${shooter.shipName} vs ${currentSalvoTarget.shipName || currentSalvoTarget.class.name}: ${result.hits} hits, ${result.damage} damage`);
+            }
             
             document.getElementById('salvoPanel').style.display = 'none';
             currentSalvoTarget = null;
@@ -9826,34 +10331,110 @@
             setupFighterSetup(gameState.selectedShip);
         }
         
-        // Update fighter operations display
+        // Update fighter operations display (hangar flights + mission assign; deployed list)
         function updateFighterOpsDisplay() {
             if (!gameState.selectedShip || !gameState.selectedShip.fighterManager) return;
             
-            const manager = gameState.selectedShip.fighterManager;
+            const ship = gameState.selectedShip;
+            const manager = ship.fighterManager;
             const status = manager.getSquadronStatus();
             
-            document.getElementById('fighterHangar').textContent = status.hangar;
-            document.getElementById('fighterDeployed').textContent = status.deployed;
-            document.getElementById('currentFighterType').textContent = 
-                FIGHTER_TYPES[manager.selectedFighterType].name;
-                
-            // Update launch count slider max
-            const slider = document.getElementById('launchCountSlider');
-            if (slider) {
-                slider.max = Math.min(manager.launchRate, status.hangar);
-                if (parseInt(slider.value) > parseInt(slider.max)) {
-                    slider.value = slider.max;
-                    updateLaunchCount(slider.value);
-                }
+            const hangarEl = document.getElementById('fighterHangar');
+            const deployedEl = document.getElementById('fighterDeployed');
+            const typeEl = document.getElementById('currentFighterType');
+            if (hangarEl) hangarEl.textContent = status.hangar;
+            if (deployedEl) deployedEl.textContent = status.deployed;
+            if (typeEl) typeEl.textContent = FIGHTER_TYPES[manager.selectedFighterType].name;
+            
+            const hangarList = document.getElementById('hangarFlightsList');
+            if (hangarList) {
+                const hangarSquads = manager.squadrons.filter(s => s.status === 'HANGAR');
+                hangarList.innerHTML = hangarSquads.length === 0 ? '<p style="color:#666;font-size:0.7rem;">No flights in hangar</p>' : hangarSquads.map(sq => {
+                    const missionOpts = (typeof FIGHTER_MISSIONS !== 'undefined' ? '<option value="">— No mission</option>' + Object.keys(FIGHTER_MISSIONS).map(m => 
+                        `<option value="${m}" ${sq.mission === m ? 'selected' : ''}>${FIGHTER_MISSIONS[m].name}${FIGHTER_MISSIONS[m].needsTarget ? ' (need target)' : ''}</option>`
+                    ).join('') : '<option value="">—</option>');
+                    const targetLabel = sq.missionTargetId ? `Target set` : (FIGHTER_MISSIONS && FIGHTER_MISSIONS[sq.mission] && FIGHTER_MISSIONS[sq.mission].needsTarget ? ' [Set target]' : '');
+                    const label = sq.isDrone
+                        ? `Drone ${sq.id}${sq.droneType && DRONE_TYPES[sq.droneType] ? ' (' + DRONE_TYPES[sq.droneType].name + ')' : ''}`
+                        : `Flight ${sq.id}`;
+                    return `<div style="margin:0.25rem 0;padding:0.25rem;border:1px solid #444;border-radius:3px;">
+                        <span style="font-size:0.75rem;">${label}</span>
+                        <select style="font-size:0.7rem;margin-left:0.25rem;" onchange="assignFighterMissionFromUi('${ship.id}',${sq.id},this.value)">${missionOpts}</select>
+                        <span style="font-size:0.65rem;color:#888;">${targetLabel}</span>
+                        <button type="button" class="btn btn-cyan" style="padding:0.1rem 0.3rem;font-size:0.65rem;" onclick="requestFighterTargetClick('${ship.id}',${sq.id})" ${!(FIGHTER_MISSIONS && sq.mission && FIGHTER_MISSIONS[sq.mission] && FIGHTER_MISSIONS[sq.mission].needsTarget) ? 'disabled' : ''}>LMB target</button>
+                    </div>`;
+                }).join('');
+            }
+            
+            const deployedList = document.getElementById('deployedFlightsList');
+            if (deployedList) {
+                const dep = manager.squadrons.filter(s => s.status === 'DEPLOYED');
+                deployedList.innerHTML = dep.length === 0 ? '<p style="color:#666;">None deployed</p>' : dep.map(sq => 
+                    `<div>Flight ${sq.id}: ${sq.mission || '—'} ${sq.missionTargetId ? '(target set)' : ''} — click on map to change mission</div>`
+                ).join('');
+            }
+            
+            const promptEl = document.getElementById('fighterTargetPrompt');
+            if (promptEl) promptEl.style.display = gameState.awaitingFighterTargetClick ? 'block' : 'none';
+        }
+        
+        function assignFighterMissionFromUi(shipId, squadronId, missionType) {
+            const ship = gameState.ships.find(s => s.id === shipId);
+            if (!ship || !ship.fighterManager) return;
+            if (!missionType) {
+                const sq = ship.fighterManager.squadrons.find(s => s.id === squadronId);
+                if (sq) { sq.mission = null; sq.missionTargetId = null; sq.loadout = null; }
+                updateFighterOpsDisplay();
+                return;
+            }
+            const missionDef = typeof FIGHTER_MISSIONS !== 'undefined' && FIGHTER_MISSIONS[missionType];
+            if (!missionDef) return;
+            if (missionDef.needsTarget) {
+                gameState.pendingFighterMission = { shipId, squadronId, missionType };
+                gameState.awaitingFighterTargetClick = true;
+                updateFighterOpsDisplay();
+                return;
+            }
+            ship.fighterManager.assignMission(squadronId, missionType, null);
+            updateFighterOpsDisplay();
+            if (typeof appendCombatLog === 'function') {
+                appendCombatLog(`${ship.shipName}: ${ship.fighterManager.squadrons.find(s => s.id === squadronId)?.isDrone ? 'Drone' : 'Flight'} ${squadronId} mission set to ${missionType}`);
             }
         }
         
-        // Launch fighters
+        function requestFighterTargetClick(shipId, squadronId) {
+            const ship = gameState.ships.find(s => s.id === shipId);
+            if (!ship || !ship.fighterManager) return;
+            const sq = ship.fighterManager.squadrons.find(s => s.id === squadronId);
+            if (!sq || sq.status !== 'HANGAR' || !sq.mission) return;
+            const missionDef = FIGHTER_MISSIONS && FIGHTER_MISSIONS[sq.mission];
+            if (!missionDef || !missionDef.needsTarget) return;
+            gameState.pendingFighterMission = { shipId, squadronId, missionType: sq.mission };
+            gameState.awaitingFighterTargetClick = true;
+            updateFighterOpsDisplay();
+        }
+        
+        function completeFighterTargetClick(targetShipId) {
+            if (!gameState.awaitingFighterTargetClick || !gameState.pendingFighterMission) return;
+            const { shipId, squadronId, missionType } = gameState.pendingFighterMission;
+            const ship = gameState.ships.find(s => s.id === shipId);
+            if (!ship || !ship.fighterManager) return;
+            ship.fighterManager.assignMission(squadronId, missionType, targetShipId);
+            gameState.awaitingFighterTargetClick = false;
+            gameState.pendingFighterMission = null;
+            updateFighterOpsDisplay();
+            if (typeof appendCombatLog === 'function') {
+                const targetShip = gameState.ships.find(s => s.id === targetShipId);
+                const targetName = targetShip ? (targetShip.shipName || targetShip.class.name) : targetShipId;
+                appendCombatLog(`${ship.shipName}: mission target set on ${targetName} for ${ship.fighterManager.squadrons.find(s => s.id === squadronId)?.isDrone ? 'Drone' : 'Flight'} ${squadronId}`);
+            }
+        }
+        
+        // Launch fighters (manual launch; in dual-phase, flights with mission auto-launch at execution start)
         function launchFighters() {
             if (!gameState.selectedShip || !gameState.selectedShip.fighterManager) return;
-            
-            const count = parseInt(document.getElementById('launchCountSlider').value);
+            const slider = document.getElementById('launchCountSlider');
+            const count = slider ? parseInt(slider.value, 10) : 1;
             const launched = gameState.selectedShip.fighterManager.launchFighters(count);
             
             if (launched.length > 0) {
@@ -9931,6 +10512,9 @@
                 alert(`Repaired ${repaired} engine(s). Thrust restored.`);
                 updateEngineDisplay();
                 updateDisplay();
+                if (typeof appendCombatLog === 'function') {
+                    appendCombatLog(`${gameState.selectedShip.shipName}: Damage Control repaired ${repaired} engine(s).`);
+                }
             } else {
                 const status = manager.getEngineStatus();
                 if (status.damaged === 0) alert('No damaged engines to repair.');
@@ -9954,8 +10538,8 @@
                 return;
             }
             
-            if (gameState.currentPhase !== 3) {
-                alert('Electronic warfare attacks can only be conducted during the Firing Phase');
+            if (gameState.currentPhase !== 0 && gameState.currentPhase !== 1) {
+                alert('Electronic warfare is available during Planning (to assign) or Execution phase.');
                 return;
             }
             
@@ -10040,9 +10624,9 @@
         // Enhanced weapon firing functions - Fixed for simple phase system
         function fireWeapon(weaponType) {
             if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
-            // Check if in Firing Phase (phase index 3)
-            if (gameState.currentPhase !== 3) {
-                alert('Weapons can only be fired during the Firing Phase');
+            // Dual-phase: weapons are tasked in Planning (0) and resolve during Execution (1)
+            if (gameState.currentPhase !== 0 && gameState.currentPhase !== 1) {
+                alert('Weapons can be assigned during Planning or fire during Execution.');
                 return;
             }
 
@@ -10184,40 +10768,73 @@
             slider.style.background = percent > 100 ? '#ff6600' : '#666';
         }
 
-        // Update energy display with current values
+        // Update energy display with current values (6-point system)
         function updateEnergyDisplay() {
             if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
             
             const ship = gameState.selectedShip;
             const energyManager = ship.energyManager;
+            const avail = energyManager.available6();
+            const demand = energyManager.demand6();
             
-            // Calculate current energy demand
-            const demand = energyManager.calculateEnergyDemand();
-            const generation = energyManager.energyGeneration;
-            const banks = energyManager.powerBanks;
-            const available = generation + banks;
+            const usedEl = document.getElementById('energyPointsUsed');
+            const maxEl = document.getElementById('energyPointsMax');
+            const reactorEl = document.getElementById('reactorMaxDisplay');
+            const bar6 = document.getElementById('energyBar6');
+            if (usedEl) usedEl.textContent = demand;
+            if (maxEl) maxEl.textContent = avail;
+            if (reactorEl) reactorEl.textContent = ship.reactorMax ?? 6;
             
-            // Update display elements
-            document.getElementById('energyGeneration').textContent = generation.toLocaleString();
-            document.getElementById('powerBanks').textContent = Math.round(banks).toLocaleString();
-            document.getElementById('energyDemand').textContent = Math.round(demand).toLocaleString();
-            
-            // Update energy bar
-            const usagePercent = Math.min(100, (demand / available) * 100);
-            const energyBar = document.getElementById('energyBar');
-            energyBar.style.width = `${usagePercent}%`;
-            
-            // Color code based on energy status
-            if (demand > available) {
-                energyBar.style.background = '#ff0000'; // Red - overloaded
-                document.getElementById('energyDemand').style.color = '#ff0000';
-            } else if (demand > generation) {
-                energyBar.style.background = '#ffaa00'; // Orange - using power banks
-                document.getElementById('energyDemand').style.color = '#ffaa00';
-            } else {
-                energyBar.style.background = '#00aa00'; // Green - normal operation
-                document.getElementById('energyDemand').style.color = '#00ff00';
+            const pct = avail > 0 ? Math.min(100, (demand / avail) * 100) : 0;
+            if (bar6) {
+                bar6.style.width = `${pct}%`;
+                bar6.style.background = demand > avail ? '#ff0000' : (demand > (ship.reactorMax ?? 6) ? '#ffaa00' : '#00aa00');
             }
+            
+            // Update button states for thrust/shield
+            ['ZERO','HALF','FULL','PLUS_50','DOUBLE'].forEach(k => {
+                const tb = document.querySelector(`[data-thrust="${k}"]`);
+                if (tb) tb.classList.toggle('selected', ship.thrustSetting === k);
+            });
+            ['ZERO','HALF','FULL','PLUS_50','PLUS_100'].forEach(k => {
+                const sb = document.querySelector(`[data-shield="${k}"]`);
+                if (sb) sb.classList.toggle('selected', ship.shieldSetting === k);
+            });
+            const pdPoint = document.getElementById('pdPointBtn');
+            const pdArea = document.getElementById('pdAreaBtn');
+            const pdOff = document.getElementById('pdOffBtn');
+            if (pdPoint) pdPoint.classList.toggle('selected', ship.pointDefenseMode === POINT_DEFENSE_MODES.POINT);
+            if (pdArea) pdArea.classList.toggle('selected', ship.pointDefenseMode === POINT_DEFENSE_MODES.AREA);
+            if (pdOff) pdOff.classList.toggle('selected', ship.pointDefenseMode === POINT_DEFENSE_MODES.OFF);
+            const reactorCheck = document.getElementById('reactorHotCheck');
+            if (reactorCheck) reactorCheck.checked = !!ship.runReactorHot;
+            
+            // Legacy elements (if still used elsewhere)
+            const legGen = document.getElementById('energyGeneration');
+            const legDem = document.getElementById('energyDemand');
+            if (legGen) legGen.textContent = avail;
+            if (legDem) legDem.textContent = demand;
+        }
+        
+        function setThrust6(setting) {
+            if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
+            gameState.selectedShip.thrustSetting = setting;
+            updateEnergyDisplay();
+        }
+        function setShield6(setting) {
+            if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
+            gameState.selectedShip.shieldSetting = setting;
+            updateEnergyDisplay();
+        }
+        function setReactorHot6(checked) {
+            if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
+            gameState.selectedShip.runReactorHot = !!checked;
+            updateEnergyDisplay();
+        }
+        function setPointDefenseMode(mode) {
+            if (!gameState.selectedShip || gameState.selectedShip.team !== 'player') return;
+            gameState.selectedShip.pointDefenseMode = mode;
+            updateEnergyDisplay();
         }
 
         // Update target list with valid targets
@@ -10460,22 +11077,11 @@
             if (gameState.tutorial && gameState.tutorial.active) advanceTutorial('confirmOrders');
         }
 
-        // Check if all player ships have confirmed orders - Fixed for simple phase system
+        // Check if all player ships have confirmed orders (dual-phase: enables Execute Turn when all set)
         function checkAllOrdersConfirmed() {
             const playerShips = gameState.ships.filter(s => s.team === 'player' && s.status !== 'DESTROYED');
             const confirmedShips = playerShips.filter(s => s.ordersConfirmed);
-            
             gameState.allOrdersConfirmed = confirmedShips.length === playerShips.length && playerShips.length > 0;
-            
-            // Only check during Planning Phase (phase index 0)
-            if (gameState.allOrdersConfirmed && gameState.currentPhase === 0) {
-                // Show option to advance phase
-                setTimeout(() => {
-                    if (confirm(`All ships have confirmed orders.\\nAdvance to ${getNextPhaseDisplay()}?`)) {
-                        nextPhase();
-                    }
-                }, 500);
-            }
         }
 
         // Get display name for next phase - GAME_PHASES uses objects with displayName
@@ -10486,35 +11092,16 @@
             return phaseObj ? (phaseObj.displayName || phaseObj.name) : 'Unknown';
         }
 
-        // Execute phase-specific logic - Matches GAME_PHASES order: PLANNING, MOVEMENT, FIGHTER, FIGHTER_MOVEMENT, FIRING, RESOLUTION
+        // Execute phase-specific logic - Dual-phase: PLANNING (0), EXECUTION (1)
         function executePhaseLogic() {
             const phaseObj = GAME_PHASES[gameState.currentPhase];
             const currentPhaseName = phaseObj ? (phaseObj.displayName || phaseObj.name) : 'Unknown';
-            
             console.log(`Executing ${currentPhaseName} logic`);
-            
             switch (gameState.currentPhase) {
                 case 0: // PLANNING
                     if (typeof executePlanningPhase === 'function') executePlanningPhase();
-                    else console.log('Planning Phase - Issue orders to ships');
                     break;
-                case 1: // MOVEMENT
-                    executeMovementPhase();
-                    break;
-                case 2: // FIGHTER (issue orders)
-                    if (typeof executeFighterPhase === 'function') executeFighterPhase();
-                    else console.log('Fighter Phase - Issue fighter orders');
-                    break;
-                case 3: // FIGHTER_MOVEMENT
-                    executeFighterMovementPhase();
-                    break;
-                case 4: // FIRING
-                    executeFiringPhase();
-                    break;
-                case 5: // RESOLUTION
-                    if (typeof executeEndPhase === 'function') executeEndPhase();
-                    else if (typeof executeResolutionPhase === 'function') executeResolutionPhase();
-                    else console.log('Resolution Phase - Resolve damage and effects');
+                case 1: // EXECUTION (started by nextPhase -> startExecutionPhase)
                     break;
                 default:
                     console.warn(`Unknown phase index: ${gameState.currentPhase}`);
@@ -10930,6 +11517,9 @@
                 
                 if (missilesDestroyed > 0) {
                     audioSystem.playSound('laser', 0.6);
+                    if (typeof appendCombatLog === 'function') {
+                        appendCombatLog(`Point defense from ${defender.shipName} destroyed ${missilesDestroyed} incoming missiles`);
+                    }
                 }
                 
                 return missilesDestroyed;
@@ -10957,6 +11547,18 @@
                 // Crew quality affects point defense
                 const crewModifier = CREW_QUALITY[defender.class.crew.quality].modifier;
                 baseChance *= crewModifier;
+                
+                // Crew station skill (point defense / weapons)
+                if (typeof getStationSkillModifier === 'function') {
+                    baseChance *= getStationSkillModifier(defender, 'pointDefense' in (defender.crewStations || {}) ? 'pointDefense' : 'weapons');
+                }
+                
+                // Point-defense mode: POINT (full), AREA (slight penalty), OFF (no PD)
+                if (defender.pointDefenseMode === POINT_DEFENSE_MODES.AREA) {
+                    baseChance *= 0.85;
+                } else if (defender.pointDefenseMode === POINT_DEFENSE_MODES.OFF) {
+                    baseChance = 0;
+                }
                 
                 // EW rating helps with targeting
                 const ewBonus = Math.min(0.3, defender.class.ew * 0.02);
@@ -11184,6 +11786,9 @@
                     // Notify if it's a player ship
                     if (systemData.target.team === 'player') {
                         alert(`${systemData.target.shipName} system recovered: ${systemData.system}`);
+                        if (typeof appendCombatLog === 'function') {
+                            appendCombatLog(`${systemData.target.shipName}: system recovered (${systemData.system})`);
+                        }
                     }
                 }
             }
@@ -11674,9 +12279,15 @@
                 
                 if (repairsSuccessful > 0) {
                     alert(`Emergency repairs successful: ${repairsSuccessful} systems restored`);
+                    if (typeof appendCombatLog === 'function') {
+                        appendCombatLog(`${ship.shipName}: Emergency repairs restored ${repairsSuccessful} critical system(s).`);
+                    }
                     audioSystem.playSound('hit', 0.4);
                 } else {
                     alert('Emergency repairs failed');
+                    if (typeof appendCombatLog === 'function') {
+                        appendCombatLog(`${ship.shipName}: Emergency repairs failed.`);
+                    }
                 }
                 
                 updateDisplay();
@@ -11895,6 +12506,10 @@ If camera gets stuck, press 'C' to reset!
                     resetCamera();
                     alert('Camera reset to center');
                     break;
+                case 'l':
+                case 'L':
+                    toggleCombatLogPanel();
+                    break;
                 case '+':
                 case '=':
                     gameState.camera.zoom = Math.min(75.0, gameState.camera.zoom * 1.2);
@@ -11936,11 +12551,36 @@ If camera gets stuck, press 'C' to reset!
             gameState.camera.zoom = Math.max(0.2, Math.min(75.0, gameState.camera.zoom));
             
             try {
-                // Advance movement animations (smooth curve: rotate over first thrust fraction of move)
+                // Advance movement animations: during EXECUTION phase use 5-second real-time; otherwise fixed step
+                const isExecution = gameState.phase === 'EXECUTION' && !gameState.executionPaused && gameState.executionStartTime != null;
+                const durationMs = gameState.executionDurationMs || 5000;
+                if (isExecution) {
+                    const elapsed = Date.now() - gameState.executionStartTime;
+                    if (elapsed >= durationMs) {
+                        gameState.executionPaused = true;
+                        if (gameState.movementAnimations && gameState.movementAnimations.size > 0) {
+                            gameState.movementAnimations.forEach((anim) => {
+                                anim.ship.position.x = anim.endPos.x;
+                                anim.ship.position.y = anim.endPos.y;
+                                anim.ship.facing = anim.endFacing;
+                                if (anim.orders && anim.orders.speed != null) anim.ship.speed = anim.orders.speed;
+                            });
+                            gameState.movementAnimations = null;
+                        }
+                        const overlay = document.getElementById('executionCompleteOverlay');
+                        if (overlay) overlay.style.display = 'block';
+                    }
+                }
                 if (gameState.movementAnimations && gameState.movementAnimations.size > 0) {
-                    const step = 0.015;
+                    let progress = 0;
+                    if (isExecution) {
+                        progress = Math.min(1, (Date.now() - gameState.executionStartTime) / durationMs);
+                    } else {
+                        progress = 0.015;
+                    }
                     gameState.movementAnimations.forEach((anim, id) => {
-                        anim.progress = Math.min(1, anim.progress + step);
+                        if (isExecution) anim.progress = progress;
+                        else anim.progress = Math.min(1, anim.progress + progress);
                         if (anim.progress >= 1) {
                             anim.ship.position.x = anim.endPos.x;
                             anim.ship.position.y = anim.endPos.y;
@@ -11992,6 +12632,24 @@ If camera gets stuck, press 'C' to reset!
                 if (gameState.selectedShip && gameState.selectedShip.position) {
                     drawWeaponArcsAndRanges(gameState.selectedShip);
                     drawSensorArc(gameState.selectedShip);
+                }
+                
+                // Visual indicator for targets painted by ASP recon drones
+                if (gameState.ships && Array.isArray(gameState.ships)) {
+                    gameState.ships.forEach(ship => {
+                        if (!ship || !ship.position) return;
+                        const paintCount = typeof getTargetPaintCount === 'function' ? getTargetPaintCount(ship) : 0;
+                        if (paintCount > 0) {
+                            ctx.save();
+                            ctx.translate(ship.position.x, ship.position.y);
+                            ctx.fillStyle = 'rgba(255, 255, 0, 0.9)';
+                            ctx.font = 'bold 10px monospace';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            ctx.fillText(`PAINTED x${paintCount}`, 0, -((ship.class && ship.class.size) ? ship.class.size : 10) - 8);
+                            ctx.restore();
+                        }
+                    });
                 }
                 
                 // Ghost: end-of-movement position and remaining Thrust (Planning, player only). Pulse when not locked.
