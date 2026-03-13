@@ -863,8 +863,8 @@
                 
                 <div style="margin: 0.5rem 0;">
                     <div class="button-grid">
-                        <button class="btn btn-cyan" data-action="saveGame" data-tooltip="Save the current battle state to browser storage." onclick="saveGame()">Save Game</button>
-                        <button class="btn btn-orange" data-action="loadGame" data-tooltip="Load a previously saved battle from browser storage." onclick="loadGame()">Load Game</button>
+                        <button class="btn btn-cyan" data-action="saveGame" data-tooltip="Save the current battle state to browser storage. Shortcut: Ctrl+S." onclick="saveGame()">Save Game</button>
+                        <button class="btn btn-orange" data-action="loadGame" data-tooltip="Load a previously saved battle from browser storage. Shortcut: Ctrl+O." onclick="loadGame()">Load Game</button>
                     </div>
                 </div>
             </div>
@@ -888,6 +888,25 @@
     </div>
 
     <script>
+        // Error logging for browser/Playwright runs: errors go to window.__gameErrors
+        window.__gameErrors = [];
+        window.__gameErrorPush = function(entry) {
+            window.__gameErrors.push(entry);
+            if (typeof console !== 'undefined' && console.log) console.log('[GameError]', entry);
+        };
+        window.addEventListener('error', function(e) {
+            window.__gameErrorPush({ type: 'error', message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, stack: e.error && e.error.stack });
+        });
+        (function() {
+            var orig = console.error;
+            if (typeof orig === 'function') {
+                console.error = function() {
+                    var args = Array.prototype.slice.call(arguments);
+                    window.__gameErrorPush({ type: 'console.error', args: args.map(String) });
+                    return orig.apply(console, arguments);
+                };
+            }
+        })();
         // Game State - UPDATE #6: New Phase System
         let gameState = {
             phase: 'PLANNING',
@@ -973,6 +992,7 @@
         // UPDATE #5: Ship Names & Class Display System
         
         // Ship class abbreviations
+        // [UNK] = Unknown class (no abbreviation in table). Shown when ship class name isn't in this map.
         const SHIP_CLASS_ABBREVIATIONS = {
             'Shiva Superdreadnought': 'SDN',
             'Superdreadnought': 'SDN',
@@ -986,6 +1006,7 @@
             'Frigate': 'FG',
             'Destroyer': 'DD',
             'Corvette': 'CT',
+            'Carrier': 'CV',
             'Squadron': 'SQ'
         };
 
@@ -1079,13 +1100,14 @@
             return {
                 shipName: shipName,
                 officerName: officerName,
-                classAbbrev: SHIP_CLASS_ABBREVIATIONS[shipClass.name] || 'UN'
+                classAbbrev: SHIP_CLASS_ABBREVIATIONS[shipClass.name] || 'UNK'
             };
         }
 
         // UPDATE #7: Energy Management & Weapons System
         
         // Dual-phase energy: 6 points per ship per turn (see GameDesign.md)
+        // No dedicated heat/cooling system: only "run reactor hot" (extra energy, 20% chance permanent reactor damage) and Fire/Overheat critical (ongoing damage until repaired).
         const ENERGY_RULES = {
             DEFAULT_ENERGY: 6,
             THRUST: { ZERO: 0, HALF: 1, FULL: 2, PLUS_50: 4, DOUBLE: 6 },
@@ -1557,20 +1579,21 @@
                 return Math.max(5, Math.min(95, hitChance)); // 5-95% range
             }
             
-            // Get weapon system effectiveness based on damage
+            // Get weapon system effectiveness based on damage. Critical = arc offline (0) until repaired.
             static getWeaponSystemEffectiveness(ship, weapon) {
-                if (!ship.systemManager) return 100;
-                
-                // Check weapon type and get appropriate system effectiveness
-                if (weapon.type && weapon.type.includes('SPINAL')) {
-                    return ship.systemManager.getSystemEffectiveness('Spinal Mount');
-                } else if (weapon.arc && weapon.arc.includes('left_broadside')) {
-                    return ship.systemManager.getSystemEffectiveness('Left Broadside');
-                } else if (weapon.arc && weapon.arc.includes('right_broadside')) {
-                    return ship.systemManager.getSystemEffectiveness('Right Broadside');
+                const arcs = ship._criticalOfflineWeaponArcs || [];
+                if (weapon.type && weapon.type.includes('SPINAL') && arcs.includes('spinal')) return 0;
+                if ((weapon.arc && weapon.arc.includes('left_broadside')) || (weapon.arc && weapon.arc.includes('right_broadside'))) {
+                    if (arcs.includes('broadsides')) return 0;
                 }
-                
-                return 100; // Default for undamaged systems
+                if (weapon.arc === 'missiles' || (ship.class.weapons && ship.class.weapons.missiles)) {
+                    if (arcs.includes('missiles')) return 0;
+                }
+                if (!ship.systemManager) return 100;
+                if (weapon.type && weapon.type.includes('SPINAL')) return ship.systemManager.getSystemEffectiveness('Spinal Mount');
+                if (weapon.arc && weapon.arc.includes('left_broadside')) return ship.systemManager.getSystemEffectiveness('Left Broadside');
+                if (weapon.arc && weapon.arc.includes('right_broadside')) return ship.systemManager.getSystemEffectiveness('Right Broadside');
+                return 100;
             }
             
             // Calculate base damage for weapon
@@ -2272,6 +2295,38 @@
                 // Apply system-specific effects
                 result.effects = this.applySystemEffects(systemName, system);
                 
+                // Spice layer: roll for thematic critical when system loses HP (chance = damageDealt / starting HP)
+                const lossFraction = result.damageDealt / system.maxHP;
+                if (result.damageDealt > 0 && lossFraction > 0 && typeof CRITICAL_HIT_TABLE !== 'undefined' && typeof DamageSystem !== 'undefined') {
+                    if (Math.random() <= lossFraction) {
+                        const allowedEffects = SYSTEM_CRITICAL_MAP && SYSTEM_CRITICAL_MAP[systemName];
+                        if (allowedEffects && allowedEffects.length > 0) {
+                            const candidates = Object.entries(CRITICAL_HIT_TABLE).filter(([, c]) => allowedEffects.includes(c.effect));
+                            if (candidates.length > 0) {
+                                const [, critical] = candidates[Math.floor(Math.random() * candidates.length)];
+                                if (!this.ship.damage) {
+                                    this.ship.damage = { hull: 0, criticals: [], systemDamage: {} };
+                                }
+                                this.ship.damage.criticals.push({
+                                    ...critical,
+                                    turn: typeof gameState !== 'undefined' ? gameState.currentTurn : 0,
+                                    repaired: false,
+                                    source: 'system',
+                                    systemName
+                                });
+                                DamageSystem.applyCriticalEffect(this.ship, critical);
+                                if (typeof appendCombatLog === 'function') {
+                                    appendCombatLog(`${this.ship.shipName}: System critical (${systemName}) – ${critical.name}`);
+                                }
+                                if (typeof MUNITIONS_EXPLOSION_SYSTEMS !== 'undefined' && MUNITIONS_EXPLOSION_SYSTEMS.includes(systemName) && critical.effect !== 'magazine_hit') {
+                                    DamageSystem.applyMunitionsExplosion(this.ship, systemName);
+                                }
+                                result.effects.push(`Critical: ${critical.name}`);
+                            }
+                        }
+                    }
+                }
+                
                 // Mark system as damaged/destroyed
                 if (system.currentHP === 0) {
                     system.destroyed = true;
@@ -2919,7 +2974,7 @@
                          onclick="selectShip(gameState.ships.find(s => s.id === '${ship.id}'))">
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #4da6ff;">${ship.shipName}</span>
-                            <span style="color: #999;">[${ship.classAbbreviation}]</span>
+                            <span style="color: #999;" title="${ship.classAbbreviation === 'UNK' ? 'Unknown class (no abbreviation in table)' : ''}">[${ship.classAbbreviation}]</span>
                         </div>
                         <div style="font-size: 0.6rem; color: #999;">
                             ${ship.commandingOfficer} | Speed: ${ship.speed}
@@ -2966,7 +3021,7 @@
             detailsDiv.innerHTML = `
                 <div style="background: #1a1a1a; border: 1px solid #444; padding: 0.5rem; border-radius: 3px;">
                     <div style="color: #4da6ff; font-weight: bold;">${ship.shipName}</div>
-                    <div style="color: #999; font-size: 0.7rem;">${ship.class.name} [${ship.classAbbreviation}]</div>
+                    <div style="color: #999; font-size: 0.7rem;" title="${ship.classAbbreviation === 'UNK' ? 'Unknown class (no abbreviation in table)' : ''}">${ship.class.name} [${ship.classAbbreviation}]</div>
                     <div style="color: #999; font-size: 0.7rem;">${ship.commandingOfficer}</div>
                     <div style="margin-top: 0.25rem; font-size: 0.7rem;">
                         <div>Speed: ${ship.speed}/${ship.class.maxSpeed} | Size: ${ship.class.size}</div>
@@ -3318,13 +3373,13 @@
             }
         };
         
-        // Fighter missions: assign in planning; some require LMB target
+        // Fighter missions: assign in planning; some require LMB target (single source of truth)
         const FIGHTER_MISSIONS = {
-            PATROL: { name: 'Patrol', needsTarget: false, loadout: 'PATROL' },
-            ESCORT: { name: 'Escort', needsTarget: false, loadout: 'ESCORT' },
-            ATTACK: { name: 'Attack', needsTarget: true, loadout: 'ATTACK' },
-            INTERCEPT: { name: 'Intercept', needsTarget: true, loadout: 'INTERCEPT' },
-            CAP: { name: 'Combat Air Patrol', needsTarget: false, loadout: 'CAP' }
+            PATROL: { name: 'Patrol', needsTarget: false, loadout: 'PATROL', selectionCriteria: 'thrust' },
+            ESCORT: { name: 'Escort', needsTarget: false, loadout: 'ESCORT', selectionCriteria: 'dogfight' },
+            ATTACK: { name: 'Attack', needsTarget: true, loadout: 'ATTACK', selectionCriteria: 'antiShip' },
+            INTERCEPT: { name: 'Intercept', needsTarget: true, loadout: 'INTERCEPT', selectionCriteria: 'dogfight' },
+            CAP: { name: 'Combat Air Patrol', needsTarget: false, loadout: 'CAP', selectionCriteria: 'dogfight' }
         };
         
         // Fighter return: when out of ordnance, low fuel, or mission objective complete
@@ -4951,9 +5006,14 @@
             };
         }
 
-        // Remaining thrust for selected ship in planning (total - rotation - movement - roll)
+        // Remaining thrust for selected ship in planning (total - rotation - movement - roll). Pro-rata by Engine system HP. Critical = engines offline (0) until repaired.
         function getRemainingThrust(ship) {
-            const total = (ship.class && ship.class.thrust) ? ship.class.thrust : 4;
+            if (ship._criticalOfflineCount && (ship._criticalOfflineCount.maneuver_loss || 0) > 0) return 0;
+            let total = (ship.class && ship.class.thrust) ? ship.class.thrust : 4;
+            if (ship.systemManager && ship.systemManager.getSystemEffectiveness('Engines') !== undefined) {
+                const eff = ship.systemManager.getSystemEffectiveness('Engines');
+                total = Math.max(0.1, total * (eff / 100));
+            }
             const orders = gameState.shipOrders.get(ship.id) || {};
             const rot = orders.thrustSpentOnRotation || 0;
             const roll = (orders.maneuver === 'roll') ? 2 : 0;
@@ -5611,6 +5671,17 @@
             });
             if (typeof processSystemRecovery === 'function') processSystemRecovery();
             gameState.ships.forEach(ship => {
+                if (ship.status === SHIP_STATUS.DESTROYED) return;
+                const unrepairedOngoing = ship.damage && ship.damage.criticals ? ship.damage.criticals.filter(c => !c.repaired && c.effect === 'ongoing_damage').length : 0;
+                if (unrepairedOngoing > 0 && ship.damage) {
+                    const hullPerTick = 1 + Math.floor(Math.random() * 2);
+                    ship.damage.hull += hullPerTick * unrepairedOngoing;
+                    const maxHull = (ship.class && ship.class.size) ? ship.class.size * 8 : 40;
+                    if (typeof appendCombatLog === 'function') appendCombatLog(`${ship.shipName}: Fire/overheat – +${hullPerTick * unrepairedOngoing} hull damage.`);
+                    if (ship.damage.hull >= maxHull) ship.status = SHIP_STATUS.DESTROYED;
+                }
+            });
+            gameState.ships.forEach(ship => {
                 if (ship.runReactorHot && ship.reactorMax > 1 && Math.random() < (ENERGY_RULES.REACTOR_HOT.PERMANENT_REDUCE_CHANCE || 0.2)) {
                     ship.reactorMax--;
                     console.log(`${ship.shipName} reactor damaged: max energy now ${ship.reactorMax}`);
@@ -5776,37 +5847,30 @@
         }
 
         function updateDisplay() {
-            // UPDATE #6: Enhanced phase indicator with subphases
-            document.getElementById('currentTurn').textContent = gameState.turn;
-            
-            // Get current phase info
-            const currentPhase = GAME_PHASES.find(p => p.name === gameState.phase);
-            let phaseText = currentPhase ? currentPhase.displayName : gameState.phase;
-            
-            // Add subphase for Planning phase
-            if (gameState.phase === 'PLANNING' && gameState.subphase) {
-                phaseText += ` (${gameState.subphase})`;
-            }
-            
-            document.getElementById('currentPhase').textContent = phaseText;
-            
-            // Set phase-appropriate CSS class
-            const phaseClass = 
+            try {
+            const curTurn = document.getElementById('currentTurn');
+            const curPhase = document.getElementById('currentPhase');
+            const shipList = document.getElementById('shipList');
+            if (!curTurn || !curPhase || !shipList) return;
+            const orders = gameState.shipOrders instanceof Map ? gameState.shipOrders : new Map();
+            curTurn.textContent = gameState.turn;
+            const phaseList = typeof GAME_PHASES !== 'undefined' && Array.isArray(GAME_PHASES) ? GAME_PHASES : [];
+            const currentPhase = phaseList.find(p => p.name === gameState.phase);
+            let phaseText = currentPhase ? currentPhase.displayName : (gameState.phase || 'PLANNING');
+            if (gameState.phase === 'PLANNING' && gameState.subphase) phaseText += ` (${gameState.subphase})`;
+            curPhase.textContent = phaseText;
+            const phaseClass =
                 gameState.phase === 'PLANNING' ? 'status-planning' :
                 gameState.phase === 'MOVEMENT' ? 'status-movement' :
                 gameState.phase === 'FIGHTER' || gameState.phase === 'FIGHTER_MOVEMENT' ? 'status-fighter' :
                 gameState.phase === 'FIRING' ? 'status-combat' :
                 gameState.phase === 'RESOLUTION' ? 'status-resolution' : 'status-default';
-                
-            document.getElementById('currentPhase').className = phaseClass;
-            document.getElementById('commandPoints').textContent = gameState.commandPoints;
-            
-            // Update ship list with order confirmation status
-            const shipList = document.getElementById('shipList');
-            const playerShips = gameState.ships.filter(s => s.team === 'player');
-            
+            curPhase.className = phaseClass;
+            const cmdEl = document.getElementById('commandPoints');
+            if (cmdEl) cmdEl.textContent = gameState.commandPoints;
+            const playerShips = (gameState.ships || []).filter(s => s && s.team === 'player');
             shipList.innerHTML = playerShips.map(ship => {
-                const hasOrders = gameState.shipOrders.has(ship.id);
+                const hasOrders = orders.has(ship.id);
                 const ordersConfirmed = ship.ordersConfirmed || false;
                 const isSelected = gameState.selectedShip && gameState.selectedShip.id === ship.id;
                 
@@ -5820,10 +5884,10 @@
                             </span>
                         </div>
                         <div style="font-size: 0.7rem; color: #999; margin-top: 0.25rem;">
-                            [${ship.classAbbreviation}] ${ship.class.name}
+                            [${ship.classAbbreviation || '?'}] ${ship.class ? ship.class.name : 'Unknown'}
                         </div>
                         <div style="font-size: 0.7rem; color: #999; margin-top: 0.25rem;">
-                            Speed: ${ship.speed}/${ship.class.maxSpeed} | Facing: ${ship.facing}°
+                            Speed: ${ship.speed}/${(ship.class && ship.class.maxSpeed) || 0} | Facing: ${ship.facing || 0}°
                             ${ship.isStealthed ? ' | STEALTH' : ''}
                         </div>
                         </div>
@@ -5836,24 +5900,19 @@
             const shipsWithConfirmedOrders = playerShips.filter(ship => ship.ordersConfirmed).length;
             const progress = totalShips > 0 ? (shipsWithConfirmedOrders / totalShips) * 100 : 0;
             
-            document.getElementById('orderProgressBar').style.width = `${progress}%`;
-            document.getElementById('orderStatus').textContent = `Orders confirmed: ${shipsWithConfirmedOrders}/${totalShips}`;
-            
-            // UPDATE #6: Use new panel visibility system
+            const progBar = document.getElementById('orderProgressBar');
+            const orderStatus = document.getElementById('orderStatus');
+            if (progBar) progBar.style.width = `${progress}%`;
+            if (orderStatus) orderStatus.textContent = `Orders confirmed: ${shipsWithConfirmedOrders}/${totalShips}`;
             updatePanelVisibility();
-            
-            // Show ship details if ship selected and in appropriate phase
             const shipControls = document.getElementById('shipControls');
-            
             if (gameState.selectedShip && gameState.selectedShip.team === 'player') {
-                // Only show ship controls during phases where they're relevant
                 const showShipControls = gameState.panelVisibility.maneuver || gameState.panelVisibility.electronic;
-                shipControls.style.display = showShipControls ? 'block' : 'none';
-                
+                if (shipControls) shipControls.style.display = showShipControls ? 'block' : 'none';
                 if (showShipControls) {
-                    // Update ship details
                     const ship = gameState.selectedShip;
-                    document.getElementById('shipDetails').innerHTML = `
+                    const detailsEl = document.getElementById('shipDetails');
+                    if (detailsEl) detailsEl.innerHTML = `
                         <div class="ship-status">
                             <div>
                                 <p><strong>Ship:</strong> ${ship.shipName}</p>
@@ -5866,15 +5925,13 @@
                                 <p><strong>Facing:</strong> ${ship.facing}°</p>
                             </div>
                             <div>
-                                <p><strong>Turn Rate:</strong> ${ship.class.turnRate}°</p>
-                                <p><strong>Thrust:</strong> ${ship.class.thrust}</p>
-                                <p><strong>Status:</strong> ${ship.ordersConfirmed ? 'Orders Confirmed' : ship.status}</p>
+                                <p><strong>Turn Rate:</strong> ${(ship.class && ship.class.turnRate) ?? '—'}°</p>
+                                <p><strong>Thrust:</strong> ${(ship.class && ship.class.thrust) ?? '—'}</p>
+                                <p><strong>Status:</strong> ${ship.ordersConfirmed ? 'Orders Confirmed' : (ship.status || '—')}</p>
                                 <p><strong>Phase:</strong> ${gameState.phase}${gameState.subphase ? ` (${gameState.subphase})` : ''}</p>
                             </div>
                         </div>
                     `;
-                    
-                    // Only update sensor displays if they exist (removed in requirements but keeping compatibility)
                     if (typeof updateSensorDisplay === 'function') updateSensorDisplay();
                     
                     // UPDATE #8: Update EW displays and hack targets
@@ -5894,7 +5951,10 @@
                     updateWeaponBatteries();
                 }
             } else {
-                shipControls.style.display = 'none';
+                if (shipControls) shipControls.style.display = 'none';
+            }
+            } catch (err) {
+                console.error('updateDisplay error', err);
             }
         }
 
@@ -5915,14 +5975,13 @@
                 return;
             }
             
-            // Find hovered ship
-            const hoveredShip = gameState.ships.find(ship => {
+            const hoveredShip = (gameState.ships || []).find(ship => {
+                if (!ship || !ship.position || !ship.class) return false;
                 const distance = Coordinates.distance(ship.position, { x, y });
-                return distance <= ship.class.size && ship.status !== 'DESTROYED';
+                return distance <= (ship.class.size || 0) && ship.status !== 'DESTROYED';
             });
-            
             const tooltip = document.getElementById('tooltip');
-            
+            if (!tooltip) return;
             if (hoveredShip && hoveredShip !== gameState.hoveredShip) {
                 gameState.hoveredShip = hoveredShip;
                 
@@ -6023,7 +6082,8 @@
 
         canvas.addEventListener('mouseleave', () => {
             gameState.hoveredShip = null;
-            document.getElementById('tooltip').style.display = 'none';
+            const tooltipEl = document.getElementById('tooltip');
+            if (tooltipEl) tooltipEl.style.display = 'none';
         });
 
         canvas.addEventListener('click', (e) => {
@@ -6033,9 +6093,10 @@
             
             if (gameState.ftlPlotMode && gameState.selectedShip && gameState.selectedShip.team === 'player') return;
             
-            const clickedShip = gameState.ships.find(ship => {
+            const clickedShip = (gameState.ships || []).find(ship => {
+                if (!ship || !ship.position || !ship.class) return false;
                 const distance = Coordinates.distance(ship.position, { x, y });
-                return distance <= ship.class.size && ship.status !== 'DESTROYED';
+                return distance <= (ship.class.size || 0) && ship.status !== 'DESTROYED';
             });
             
             // LMB on enemy to set fighter mission target (planning phase)
@@ -6609,10 +6670,16 @@
             
             // Helper functions for combat calculations
             static getEffectiveShieldValue(target, attacker) {
+                if (target._criticalOfflineCount && (target._criticalOfflineCount.shield_damage || 0) > 0) return 0;
                 const bearing = this.calculateBearing(attacker.position, target.position);
                 const relativeBearing = Math.abs(bearing - target.facing);
                 const frontArc = relativeBearing <= 90 || relativeBearing >= 270;
-                return frontArc ? (target.class.shields.fore || 0) : (target.class.shields.aft || 0);
+                let base = frontArc ? (target.class.shields.fore || 0) : (target.class.shields.aft || 0);
+                if (target.systemManager && base > 0) {
+                    const eff = frontArc ? target.systemManager.getSystemEffectiveness('Forward Shield Generators') : target.systemManager.getSystemEffectiveness('Rear Shield Generators');
+                    if (eff !== undefined) base = base * (eff / 100);
+                }
+                return base;
             }
             
             static getEffectiveTurretValue(target, attacker) {
@@ -6998,6 +7065,40 @@
             20: { name: "Ship Destroyed", description: "Complete structural failure - ship destroyed", effect: "destroyed", severity: "critical", repairChance: 0.0 }
         };
 
+        // Thematic critical effects per system (for spice-layer roll when system loses HP)
+        const SYSTEM_CRITICAL_MAP = {
+            'Front Armour': ['none', 'hull_breach'],
+            'Rear Armour': ['none', 'hull_breach'],
+            'Right Side Armour': ['none', 'hull_breach'],
+            'Left Side Armour': ['none', 'hull_breach'],
+            'Spinal Mount': ['weapon_loss', 'power_loss'],
+            'Left Broadside': ['weapon_loss'],
+            'Right Broadside': ['weapon_loss'],
+            'Prow Chaser': ['weapon_loss'],
+            'Stern Chaser': ['weapon_loss'],
+            'Sensor Arrays': ['sensor_damage'],
+            'EW Arrays': ['sensor_damage'],
+            'Missile Array': ['weapon_loss', 'magazine_hit'],
+            'Launch Bays': ['crew_loss', 'weapon_loss', 'magazine_hit'],
+            'Left Side Turrets': ['weapon_loss'],
+            'Right Side Turrets': ['weapon_loss'],
+            'Forward Shield Generators': ['shield_damage'],
+            'Rear Shield Generators': ['shield_damage'],
+            'Command and Control': ['command_loss', 'crew_loss'],
+            'Quarters': ['life_support', 'crew_loss'],
+            'Support Facilities': ['crew_loss'],
+            'Environmental Systems': ['life_support', 'gravity_loss'],
+            'Hull Structure': ['catastrophic', 'destroyed', 'hull_breach'],
+            'Engines': ['maneuver_loss'],
+            'Comms Arrays': ['comm_loss'],
+            'Crew': ['crew_loss'],
+            'Propellant Tanks': ['maneuver_loss'],
+            'FTL Drive': ['power_loss'],
+            'Vehicle Garages': ['crew_loss'],
+            'Reactors': ['power_loss', 'magazine_hit']
+        };
+        const MUNITIONS_EXPLOSION_SYSTEMS = ['Missile Array', 'Launch Bays', 'Reactors'];
+
         class DamageSystem {
             static applyDamage(ship, damage) {
                 if (!ship.damage) {
@@ -7022,10 +7123,14 @@
                     });
                     
                     this.applyCriticalEffect(ship, critical);
+                    
+                    if (typeof appendCombatLog === 'function') {
+                        appendCombatLog(`${ship.shipName}: CRITICAL HIT – ${critical.name}`);
+                    }
                 }
                 
                 // Check if ship is destroyed
-                const maxHull = ship.class.size * 5; // Hull points = size * 5
+                const maxHull = ship.class.size * 8; // Hull points tuned: size × 8 for more staying power
                 if (ship.damage.hull >= maxHull || ship.damage.criticals.some(c => c.effect === 'destroyed')) {
                     ship.status = SHIP_STATUS.DESTROYED;
                 }
@@ -7038,28 +7143,68 @@
                 };
             }
             
+            // Criticals fully shut systems down (offline until damage control repairs). HP damage = gradual degradation, harder to repair.
             static applyCriticalEffect(ship, critical) {
+                ship._criticalOfflineCount = ship._criticalOfflineCount || {};
                 switch (critical.effect) {
                     case 'shield_damage':
-                        ship.class.shields.fore = Math.floor(ship.class.shields.fore * 0.5);
-                        ship.class.shields.aft = Math.floor(ship.class.shields.aft * 0.5);
+                        ship._criticalOfflineCount.shield_damage = (ship._criticalOfflineCount.shield_damage || 0) + 1;
+                        if (typeof appendCombatLog === 'function') appendCombatLog(`${ship.shipName}: Shields offline!`);
                         break;
                     case 'maneuver_loss':
-                        ship.class.turnRate = Math.floor(ship.class.turnRate * 0.7);
-                        ship.class.maxSpeed = Math.floor(ship.class.maxSpeed * 0.8);
+                        ship._criticalOfflineCount.maneuver_loss = (ship._criticalOfflineCount.maneuver_loss || 0) + 1;
+                        if (typeof appendCombatLog === 'function') appendCombatLog(`${ship.shipName}: Engines offline!`);
                         break;
                     case 'weapon_loss':
-                        // Disable random weapon system
-                        if (ship.class.weapons.broadsides.length > 0) {
-                            ship.class.weapons.broadsides[0].count = Math.floor(ship.class.weapons.broadsides[0].count * 0.5);
+                        if (ship.class.weapons) {
+                            const arcs = ['broadsides', 'spinal', 'missiles'];
+                            const available = arcs.filter(a => ship.class.weapons[a] && ship.class.weapons[a].length !== 0);
+                            if (available.length > 0) {
+                                const arc = available[Math.floor(Math.random() * available.length)];
+                                critical.weaponArc = arc;
+                                ship._criticalOfflineWeaponArcs = ship._criticalOfflineWeaponArcs || [];
+                                ship._criticalOfflineWeaponArcs.push(arc);
+                                if (typeof appendCombatLog === 'function') appendCombatLog(`${ship.shipName}: ${arc} offline!`);
+                            }
                         }
                         break;
                     case 'sensor_damage':
-                        ship.class.ew = Math.floor(ship.class.ew * 0.6);
+                        ship._criticalOfflineCount.sensor_damage = (ship._criticalOfflineCount.sensor_damage || 0) + 1;
+                        if (typeof appendCombatLog === 'function') appendCombatLog(`${ship.shipName}: Sensors offline!`);
+                        break;
+                    case 'ongoing_damage':
+                        ship._criticalOfflineCount.ongoing_damage = (ship._criticalOfflineCount.ongoing_damage || 0) + 1;
+                        if (typeof appendCombatLog === 'function') appendCombatLog(`${ship.shipName}: Fire/overheat – ongoing damage until repaired!`);
+                        break;
+                    case 'magazine_hit':
+                        DamageSystem.applyMunitionsExplosion(ship, null);
                         break;
                     case 'destroyed':
                         ship.status = SHIP_STATUS.DESTROYED;
                         break;
+                }
+            }
+            static applyMunitionsExplosion(ship, systemName) {
+                if (!ship || ship.status === SHIP_STATUS.DESTROYED) return;
+                const size = (ship.class && ship.class.size) || 5;
+                const extraHull = Math.max(2, Math.floor(size * 2) + Math.floor(Math.random() * (size + 1)));
+                if (!ship.damage) ship.damage = { hull: 0, criticals: [], systemDamage: {} };
+                ship.damage.hull += extraHull;
+                const maxHull = ship.class && ship.class.size ? ship.class.size * 8 : 40;
+                if (typeof appendCombatLog === 'function') {
+                    appendCombatLog(`${ship.shipName}: Munitions explosion! +${extraHull} hull damage${systemName ? ` (${systemName})` : ''}.`);
+                }
+                if (ship.damage.hull >= maxHull) ship.status = SHIP_STATUS.DESTROYED;
+            }
+            static clearCriticalOffline(ship, critical) {
+                if (!critical || critical.effect === 'destroyed' || critical.effect === 'none') return;
+                ship._criticalOfflineCount = ship._criticalOfflineCount || {};
+                if (critical.effect === 'weapon_loss' && critical.weaponArc) {
+                    const arr = ship._criticalOfflineWeaponArcs || [];
+                    const idx = arr.indexOf(critical.weaponArc);
+                    if (idx !== -1) arr.splice(idx, 1);
+                } else if (critical.effect in ship._criticalOfflineCount && ship._criticalOfflineCount[critical.effect] > 0) {
+                    ship._criticalOfflineCount[critical.effect]--;
                 }
             }
         }
@@ -7796,23 +7941,17 @@
             ctx.restore();
         }
 
-        // Update the render function to use enhanced systems
         function enhancedRender() {
+            if (!canvas || !ctx) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+            const cam = gameState.camera || { x: 0, y: 0, zoom: 1 };
             ctx.save();
-            ctx.translate(canvas.width/2 + gameState.camera.x, canvas.height/2 + gameState.camera.y);
-            ctx.scale(gameState.camera.zoom, gameState.camera.zoom);
-            
-            // Draw grid
+            ctx.translate(canvas.width/2 + cam.x, canvas.height/2 + cam.y);
+            ctx.scale(cam.zoom, cam.zoom);
             drawGrid();
-            
-            // Draw enhanced terrain
             drawEnhancedTerrain();
-            
-            // Draw ships with enhanced graphics
-            gameState.ships.forEach(ship => {
-                drawEnhancedShip(ship);
+            (gameState.ships || []).forEach(ship => {
+                if (ship && ship.position) drawEnhancedShip(ship);
             });
             
             // UPDATE #9: Draw fighter squadrons
@@ -9141,28 +9280,6 @@
             LEGENDARY: { name: 'Legendary', skill: 4, attackModifier: 15, survivalTarget: 3, color: '#00aaff' }
         };
         
-        // Fighter Mission Types
-        const FIGHTER_MISSIONS = {
-            ESCORT: { 
-                name: 'Escort', 
-                description: 'Protect assigned ship from enemy fighters',
-                selectionCriteria: 'dogfight', // Select highest dogfight
-                needsTarget: true
-            },
-            ATTACK: { 
-                name: 'Attack', 
-                description: 'Attack designated enemy ship',
-                selectionCriteria: 'antiShip', // Select highest anti-ship
-                needsTarget: true
-            },
-            PATROL: { 
-                name: 'Patrol', 
-                description: 'Free hunt patrol',
-                selectionCriteria: 'thrust', // Select highest thrust
-                needsTarget: false
-            }
-        };
-        
         // Enhanced Fighter Squadron Class with correct mechanics
         class FighterSquadron {
             constructor(id, fighterClass, motherShip, team) {
@@ -9472,6 +9589,8 @@
 
         function updateObjectiveDisplay() {
             if (!gameState.currentScenario) return;
+            const objectives = gameState.currentScenario.objectives;
+            if (!objectives || !Array.isArray(objectives.primary) || !Array.isArray(objectives.bonus)) return;
             
             const objectivesElement = document.querySelector('.objectives div');
             if (!objectivesElement) return;
@@ -9480,11 +9599,11 @@
                 <h4 style="color: #4da6ff;">${gameState.currentScenario.name}</h4>
                 <div style="font-size: 0.75rem;">
                     <p style="color: #ff4444; margin: 0.25rem 0;">Primary:</p>
-                    ${gameState.currentScenario.objectives.primary.map(obj => 
+                    ${objectives.primary.map(obj => 
                         `<p style="margin-left: 0.5rem;">• ${obj}</p>`
                     ).join('')}
                     <p style="color: #44ff44; margin: 0.25rem 0;">Bonus:</p>
-                    ${gameState.currentScenario.objectives.bonus.map(obj => 
+                    ${objectives.bonus.map(obj => 
                         `<p style="margin-left: 0.5rem;">• ${obj}</p>`
                     ).join('')}
                     <p style="margin-top: 0.5rem; color: #ffaa00;">Turn ${gameState.currentTurn}/${gameState.maxTurns}</p>
@@ -9644,13 +9763,13 @@
                 return;
             }
             
-            // Repair attempts
+            // Repair attempts (criticals repair quickly; restores offline systems)
             gameState.ships.forEach(ship => {
                 if (ship.damage && ship.damage.criticals.length > 0) {
                     ship.damage.criticals.forEach(critical => {
                         if (!critical.repaired && Math.random() < critical.repairChance) {
                             critical.repaired = true;
-                            // Partially restore system function
+                            if (typeof DamageSystem !== 'undefined' && DamageSystem.clearCriticalOffline) DamageSystem.clearCriticalOffline(ship, critical);
                         }
                     });
                 }
@@ -12271,8 +12390,9 @@
                 
                 for (let i = 0; i < repairAttempts && i < ship.damage.criticals.length; i++) {
                     const critical = ship.damage.criticals[i];
-                    if (!critical.repaired && Math.random() < critical.repairChance * 1.5) { // Emergency repairs have bonus
+                    if (!critical.repaired && Math.random() < critical.repairChance * 1.5) {
                         critical.repaired = true;
+                        if (typeof DamageSystem !== 'undefined' && DamageSystem.clearCriticalOffline) DamageSystem.clearCriticalOffline(ship, critical);
                         repairsSuccessful++;
                     }
                 }
@@ -12403,30 +12523,71 @@ If camera gets stuck, press 'C' to reset!
                 const shipOrdersArr = gameState.shipOrders instanceof Map 
                     ? Array.from(gameState.shipOrders.entries()) 
                     : [];
-                const shipsData = (gameState.ships || []).map(s => ({
-                    id: s.id, team: s.team,
-                    position: { ...s.position }, facing: s.facing, speed: s.speed,
-                    status: s.status, ordersConfirmed: s.ordersConfirmed,
-                    isStealthed: s.isStealthed, sensorMode: s.sensorMode,
-                    shipName: s.shipName, commandingOfficer: s.commandingOfficer,
-                    classKey: Object.keys(SHIP_CLASSES).find(k => SHIP_CLASSES[k] === s.class) || 
-                        Object.keys(ENHANCED_SHIP_CLASSES || {}).find(k => (ENHANCED_SHIP_CLASSES || {})[k] === s.class) || 'CRUISER',
-                    damage: s.damage ? JSON.parse(JSON.stringify(s.damage)) : null
-                }));
+                const shipsData = (gameState.ships || []).map(s => {
+                    const classKey = Object.keys(SHIP_CLASSES || {}).find(k => SHIP_CLASSES[k] === s.class) || 
+                        (typeof ENHANCED_SHIP_CLASSES !== 'undefined' && Object.keys(ENHANCED_SHIP_CLASSES).find(k => ENHANCED_SHIP_CLASSES[k] === s.class)) || 'CRUISER';
+                    const sys = s.systemManager && s.systemManager.systems ? s.systemManager.systems : {};
+                    const systemsData = {};
+                    Object.keys(sys).forEach(name => {
+                        systemsData[name] = { currentHP: sys[name].currentHP, maxHP: sys[name].maxHP, effectiveness: sys[name].effectiveness, damaged: sys[name].damaged, destroyed: sys[name].destroyed };
+                    });
+                    return {
+                        id: s.id, team: s.team,
+                        position: { ...s.position }, facing: s.facing, speed: s.speed,
+                        status: s.status, ordersConfirmed: s.ordersConfirmed,
+                        isStealthed: s.isStealthed, sensorMode: s.sensorMode,
+                        shipName: s.shipName, commandingOfficer: s.commandingOfficer,
+                        classKey,
+                        damage: s.damage ? JSON.parse(JSON.stringify(s.damage)) : null,
+                        crewStations: s.crewStations ? JSON.parse(JSON.stringify(s.crewStations)) : null,
+                        reactorMax: s.reactorMax,
+                        thrustSetting: s.thrustSetting,
+                        shieldSetting: s.shieldSetting,
+                        runReactorHot: !!s.runReactorHot,
+                        pointDefenseMode: s.pointDefenseMode,
+                        _criticalOfflineCount: s._criticalOfflineCount ? { ...s._criticalOfflineCount } : null,
+                        _criticalOfflineWeaponArcs: Array.isArray(s._criticalOfflineWeaponArcs) ? [...s._criticalOfflineWeaponArcs] : null,
+                        systemsData: Object.keys(systemsData).length ? systemsData : null,
+                        squadronsData: (s.fighterManager && s.fighterManager.squadrons) ? s.fighterManager.squadrons.map(sq => ({
+                            id: sq.id, type: sq.type, status: sq.status, mission: sq.mission || null, missionTargetId: sq.missionTargetId || null,
+                            position: sq.position ? { ...sq.position } : null, ordnance: sq.ordnance, fuel: sq.fuel,
+                            fighters: Array.isArray(sq.fighters) ? sq.fighters.map(f => ({ ...f })) : [],
+                            isDrone: !!sq.isDrone, droneType: sq.droneType || null, missionTurns: sq.missionTurns || 0, loadout: sq.loadout || null
+                        })) : null
+                    };
+                });
+                const fighterClassKeys = typeof FIGHTER_CLASSES !== 'undefined' ? Object.keys(FIGHTER_CLASSES) : [];
+                const launchedSquadronsData = (gameState.fighterSquadrons || []).filter(sq => sq.status === 'LAUNCHED' || sq.status === 'RETURNING').map(sq => {
+                    const fcKey = sq.fighterClass && fighterClassKeys.find(k => FIGHTER_CLASSES[k] && FIGHTER_CLASSES[k].name === sq.fighterClass.name);
+                    const activeFighters = sq.fighters ? sq.fighters.filter(f => f.status === 'ACTIVE').length : (sq.activeFighters ?? 0);
+                    return {
+                        motherShipId: sq.motherShip ? sq.motherShip.id : null,
+                        id: sq.id, status: sq.status, mission: sq.mission || null, targetId: sq.target ? sq.target.id : null,
+                        position: sq.position ? { ...sq.position } : null, facing: sq.facing, team: sq.team || 'player',
+                        fighters: Array.isArray(sq.fighters) ? sq.fighters.map(f => ({ ...f })) : [],
+                        fighterClassKey: fcKey || 'AVENGER',
+                        activeFighters
+                    };
+                });
                 const saveData = {
                     currentTurn: gameState.currentTurn || gameState.turn,
                     currentPhase: gameState.currentPhase,
                     phase: gameState.phase,
                     commandPoints: gameState.commandPoints,
                     maxTurns: gameState.maxTurns,
-                    currentScenarioKey: gameState.currentScenario ? Object.keys(BATTLE_SCENARIOS || {}).find(k => BATTLE_SCENARIOS[k] === gameState.currentScenario) : null,
+                    currentScenarioKey: gameState.currentScenario && typeof BATTLE_SCENARIOS !== 'undefined' ? Object.keys(BATTLE_SCENARIOS).find(k => BATTLE_SCENARIOS[k] === gameState.currentScenario) : null,
                     currentTerrain: gameState.currentTerrain,
                     terrainFeatures: gameState.terrainFeatures ? JSON.parse(JSON.stringify(gameState.terrainFeatures)) : [],
                     shipOrders: shipOrdersArr,
                     ships: shipsData,
-                    camera: gameState.camera ? { ...gameState.camera } : { x: 0, y: 0, zoom: 1 }
+                    camera: gameState.camera ? { ...gameState.camera } : { x: 0, y: 0, zoom: 1 },
+                    combatLog: Array.isArray(gameState.combatLog) ? gameState.combatLog.slice(-200) : [],
+                    selectedShipId: gameState.selectedShip ? gameState.selectedShip.id : null,
+                    launchedSquadrons: launchedSquadronsData,
+                    savedAt: new Date().toISOString()
                 };
                 localStorage.setItem('leviathan_save', JSON.stringify(saveData));
+                if (typeof appendCombatLog === 'function') appendCombatLog('Game saved.');
                 alert('Game saved successfully');
             } catch (err) {
                 console.error('Save failed:', err);
@@ -12448,8 +12609,12 @@ If camera gets stuck, press 'C' to reset!
                 gameState.currentTerrain = data.currentTerrain || 'OPEN_SPACE';
                 gameState.terrainFeatures = data.terrainFeatures || [];
                 if (data.camera) gameState.camera = data.camera;
-                if (data.currentScenarioKey && BATTLE_SCENARIOS) gameState.currentScenario = BATTLE_SCENARIOS[data.currentScenarioKey];
+                if (data.currentScenarioKey && typeof BATTLE_SCENARIOS !== 'undefined') gameState.currentScenario = BATTLE_SCENARIOS[data.currentScenarioKey];
+                gameState.combatLog = Array.isArray(data.combatLog) ? data.combatLog : [];
                 
+                if (!gameState.shipOrders || !(gameState.shipOrders instanceof Map)) {
+                    gameState.shipOrders = new Map();
+                }
                 gameState.shipOrders.clear();
                 (data.shipOrders || []).forEach(([id, orders]) => gameState.shipOrders.set(id, orders));
                 
@@ -12465,11 +12630,79 @@ If camera gets stuck, press 'C' to reset!
                     if (sd.shipName) ship.shipName = sd.shipName;
                     if (sd.commandingOfficer) ship.commandingOfficer = sd.commandingOfficer;
                     if (sd.damage) ship.damage = sd.damage;
+                    if (sd.crewStations) ship.crewStations = sd.crewStations;
+                    if (sd.reactorMax != null) ship.reactorMax = sd.reactorMax;
+                    if (sd.thrustSetting) ship.thrustSetting = sd.thrustSetting;
+                    if (sd.shieldSetting) ship.shieldSetting = sd.shieldSetting;
+                    ship.runReactorHot = !!sd.runReactorHot;
+                    if (sd.pointDefenseMode) ship.pointDefenseMode = sd.pointDefenseMode;
+                    if (sd._criticalOfflineCount) ship._criticalOfflineCount = sd._criticalOfflineCount;
+                    if (Array.isArray(sd._criticalOfflineWeaponArcs)) ship._criticalOfflineWeaponArcs = sd._criticalOfflineWeaponArcs;
+                    if (sd.systemsData && ship.systemManager && ship.systemManager.systems) {
+                        Object.keys(sd.systemsData).forEach(name => {
+                            if (ship.systemManager.systems[name]) {
+                                const d = sd.systemsData[name];
+                                ship.systemManager.systems[name].currentHP = d.currentHP;
+                                ship.systemManager.systems[name].maxHP = d.maxHP;
+                                ship.systemManager.systems[name].effectiveness = d.effectiveness;
+                                ship.systemManager.systems[name].damaged = !!d.damaged;
+                                ship.systemManager.systems[name].destroyed = !!d.destroyed;
+                            }
+                        });
+                    }
+                    if (sd.squadronsData && ship.fighterManager && ship.fighterManager.squadrons) {
+                        sd.squadronsData.forEach((saved, idx) => {
+                            const sq = ship.fighterManager.squadrons[idx];
+                            if (sq) {
+                                sq.id = saved.id;
+                                sq.type = saved.type || sq.type;
+                                sq.status = saved.status || 'HANGAR';
+                                sq.mission = saved.mission || null;
+                                sq.missionTargetId = saved.missionTargetId || null;
+                                sq.position = saved.position ? { ...saved.position } : null;
+                                sq.ordnance = saved.ordnance != null ? saved.ordnance : sq.ordnance;
+                                sq.fuel = saved.fuel != null ? saved.fuel : sq.fuel;
+                                sq.missionTurns = saved.missionTurns || 0;
+                                sq.loadout = saved.loadout || null;
+                                sq.isDrone = !!saved.isDrone;
+                                sq.droneType = saved.droneType || null;
+                                if (Array.isArray(saved.fighters) && saved.fighters.length) sq.fighters = saved.fighters.map(f => ({ ...f }));
+                            }
+                        });
+                    }
                     return ship;
                 });
+                gameState.fighterSquadrons = [];
+                if (Array.isArray(data.launchedSquadrons) && typeof FIGHTER_CLASSES !== 'undefined') {
+                    data.launchedSquadrons.forEach(ls => {
+                        const mother = ls.motherShipId ? gameState.ships.find(s => s.id === ls.motherShipId) : null;
+                        if (!mother) return;
+                        const fc = FIGHTER_CLASSES[ls.fighterClassKey] || FIGHTER_CLASSES.AVENGER;
+                        const sq = {
+                            id: ls.id,
+                            motherShip: mother,
+                            status: ls.status || 'LAUNCHED',
+                            mission: ls.mission || 'PATROL',
+                            target: ls.targetId ? gameState.ships.find(s => s.id === ls.targetId) : null,
+                            position: ls.position ? { ...ls.position } : { x: mother.position.x, y: mother.position.y },
+                            facing: ls.facing != null ? ls.facing : mother.facing,
+                            team: ls.team || 'player',
+                            fighters: Array.isArray(ls.fighters) ? ls.fighters.map(f => ({ ...f })) : [],
+                            fighterClass: { ...fc },
+                            get activeFighters() { return this.fighters.filter(f => f.status === 'ACTIVE').length; },
+                            resetMovement: function() {},
+                            executeMovement: function() {},
+                            move: function() {}
+                        };
+                        gameState.fighterSquadrons.push(sq);
+                    });
+                }
+                gameState.selectedShip = data.selectedShipId ? gameState.ships.find(s => s.id === data.selectedShipId) || null : null;
                 updateDisplay();
                 render();
-                alert('Game loaded successfully');
+                if (typeof appendCombatLog === 'function') appendCombatLog('Game loaded.');
+                const savedAt = data.savedAt ? (function() { try { const d = new Date(data.savedAt); return d.toLocaleString(); } catch(_) { return ''; } })() : '';
+                alert(savedAt ? `Game loaded successfully\n(Saved: ${savedAt})` : 'Game loaded successfully');
             } catch (err) {
                 console.error('Load failed:', err);
                 alert('Failed to load saved game: ' + (err.message || 'Unknown error'));
@@ -12478,6 +12711,10 @@ If camera gets stuck, press 'C' to reset!
 
         // Enhanced keyboard controls
         document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 's') { e.preventDefault(); saveGame(); return; }
+                if (e.key === 'o' || e.key === 'l') { e.preventDefault(); loadGame(); return; }
+            }
             switch (e.key) {
                 case ' ':
                     e.preventDefault();
@@ -12745,6 +12982,7 @@ If camera gets stuck, press 'C' to reset!
             const specialPanel = document.getElementById('specialPanel');
             const detectionPanel = document.getElementById('detectionPanel');
             const fighterPanel = document.getElementById('fighterPanel'); // UPDATE #9
+            if (!weaponPanel || !specialPanel || !detectionPanel || !fighterPanel) return;
             
             if (ship && ship.team === 'player') {
                 weaponPanel.style.display = 'block';
@@ -12766,7 +13004,7 @@ If camera gets stuck, press 'C' to reset!
         }
 
         // Enhanced mouse click handling for ship selection and FTL destination
-        canvas.addEventListener('click', (e) => {
+        if (canvas) canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left - canvas.width/2) / gameState.camera.zoom - gameState.camera.x;
             const y = (e.clientY - rect.top - canvas.height/2) / gameState.camera.zoom - gameState.camera.y;
@@ -12798,7 +13036,7 @@ If camera gets stuck, press 'C' to reset!
         });
 
         // FIX: Simplified mousewheel zoom handling - prevents visual glitches
-        canvas.addEventListener('wheel', (e) => {
+        if (canvas) canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             
             const zoomSpeed = 0.1;
@@ -12836,40 +13074,42 @@ If camera gets stuck, press 'C' to reset!
         let lastPanX = 0;
         let lastPanY = 0;
 
-        canvas.addEventListener('mousedown', (e) => {
-            if (e.button === 1 || e.button === 2) { // Middle or right mouse button
+        if (canvas) {
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 1 || e.button === 2) { // Middle or right mouse button
+                    e.preventDefault();
+                    isPanning = true;
+                    lastPanX = e.clientX;
+                    lastPanY = e.clientY;
+                    canvas.style.cursor = 'grabbing';
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (isPanning) {
+                    const deltaX = e.clientX - lastPanX;
+                    const deltaY = e.clientY - lastPanY;
+                    
+                    gameState.camera.x += deltaX / gameState.camera.zoom;
+                    gameState.camera.y += deltaY / gameState.camera.zoom;
+                    
+                    lastPanX = e.clientX;
+                    lastPanY = e.clientY;
+                }
+            });
+
+            canvas.addEventListener('mouseup', (e) => {
+                if (e.button === 1 || e.button === 2) {
+                    isPanning = false;
+                    canvas.style.cursor = 'crosshair';
+                }
+            });
+
+            // Prevent context menu on right click
+            canvas.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                isPanning = true;
-                lastPanX = e.clientX;
-                lastPanY = e.clientY;
-                canvas.style.cursor = 'grabbing';
-            }
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            if (isPanning) {
-                const deltaX = e.clientX - lastPanX;
-                const deltaY = e.clientY - lastPanY;
-                
-                gameState.camera.x += deltaX / gameState.camera.zoom;
-                gameState.camera.y += deltaY / gameState.camera.zoom;
-                
-                lastPanX = e.clientX;
-                lastPanY = e.clientY;
-            }
-        });
-
-        canvas.addEventListener('mouseup', (e) => {
-            if (e.button === 1 || e.button === 2) {
-                isPanning = false;
-                canvas.style.cursor = 'crosshair';
-            }
-        });
-
-        // Prevent context menu on right click
-        canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-        });
+            });
+        }
 
         // =============================================
         // DEBUG CONTROLS AND ANIMATION LOOP

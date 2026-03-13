@@ -1,0 +1,12 @@
+{
+  "name": "renegade-legion-leviathan",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:browser": "node run-browser-test.js",
+    "server": "python -m http.server 8765"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}

@@ -184,3 +184,36 @@ Drones are **semi-autonomous swarms** that sit between missiles and fighters:
    - Systems may recover (EW-disabled systems re-activate).
    - Reactor-hot ships roll for permanent reactor degradation.
    - The cycle returns to **Planning** for the next turn.
+
+---
+
+## Damage & criticals (spice layer)
+
+- **System HP:** Each ship system (armour, weapons, engines, shields, sensors, etc.) has **starting HP** from the damage tables. When a system takes damage, its **current HP** and **effectiveness** are updated; effectiveness = current HP ÷ starting HP (pro-rata).
+- **Pro-rata performance:** System damage **degrades performance in proportion** to HP lost:
+  - **Engines:** Available thrust = base thrust × (Engine system effectiveness / 100).
+  - **Shields:** Effective shield value used in to-hit/damage = base shield × (Forward/Rear Shield Generator effectiveness / 100).
+  - **Weapons:** Spinal, broadsides, turrets, etc. use their system effectiveness (e.g. for hit/damage scaling).
+- **Critical roll on system damage:** When a system **loses HP**, roll for a **thematic critical**:
+  - **Chance** = (damage just dealt) ÷ (system’s **starting HP**), e.g. 1,000 damage on a 10,000 HP system → 10% chance.
+  - If the roll **succeeds**, apply one **thematically appropriate** critical from the critical hit table (e.g. Engines → maneuver/drive crits, Shield Generators → shield damage, weapons → weapon loss, sensors → sensor damage).
+  - The critical hit table is used as a **spice layer**: it adds flavour and extra effects (reduced turn rate, shield drop, weapon loss, etc.) on top of the pro-rata system degradation.
+- **Munitions explosions:** When **Missile Array**, **Launch Bays** (hangars), or **Reactors** suffer a critical (from the spice-layer roll), they can suffer a **munitions explosion** that inflicts **additional hull damage** (scaled by ship size). Rolled **Magazine Explosion** criticals also apply this extra damage.
+- **Fire/Overheat (ongoing_damage):** The Fire/Overheat critical causes **ongoing hull damage each turn** until damage control repairs it.
+
+---
+
+## Heat build-up and cooling (current rules)
+
+- **No dedicated heat/cooling system** is implemented. The only heat-related rules in use are:
+  - **Run reactor hot:** Optional +1 energy per turn, with a 20% chance each turn to **permanently** reduce reactor max output (e.g. 6 → 5). This is the only “heat risk” mechanic.
+  - **Fire/Overheat critical:** Internal fire causes **ongoing damage** each turn until repaired (see Damage & criticals above).
+- **Cooling:** There are no rules for cooling systems, heat sinks, or heat build-up from weapons fire. These could be added later (e.g. heat per weapon fired, cooling per turn, overheat threshold).
+
+---
+
+## Save / Load
+
+- **Save Game** (button or **Ctrl+S**): Persists the current battle to browser local storage.
+- **Load Game** (button or **Ctrl+O**): Restores the last saved battle; the load dialog shows when that save was made.
+- **Persisted:** Phase and turn; ship positions, damage, system HP, criticals, energy settings (thrust/shields/reactor hot/PD), crew stations, orders and ghost positions; combat log (last 200 entries); camera; scenario/terrain; hangar and deployed fighter/drone squadron state per ship; launched fighter squadrons (position and state). One save slot (overwritten each time).
