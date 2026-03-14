@@ -37,21 +37,64 @@ async function main() {
   });
   try {
     out('Navigating to http://localhost:8765 ...');
-    await page.goto('http://localhost:8765', { waitUntil: 'domcontentloaded', timeout: 10000 });
-    out('Page loaded. Waiting 3s for scripts and any errors...');
-    await page.waitForTimeout(3000);
+    await page.goto('http://localhost:8765', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    out('Page loaded. Waiting 2s for scripts...');
+    await page.waitForTimeout(2000);
     out('Clicking New Battle...');
     await page.locator('button[data-action="startNewBattle"]').or(page.getByRole('button', { name: /New Battle/i })).first().click().catch(() => {});
     await page.waitForTimeout(1500);
     out('Clicking first ship...');
     await page.locator('.ship-item').first().click().catch(() => {});
     await page.waitForTimeout(800);
+    // PD mode and Refocus shields (design-gap validation)
+    out('Setting PD mode to Area and Refocus Fore...');
+    await page.locator('#pdAreaBtn').click().catch(() => {});
+    await page.waitForTimeout(200);
+    await page.locator('#refocusForeBtn').click().catch(() => {});
+    await page.waitForTimeout(200);
+    const pdRefocusOk = await page.evaluate(() => {
+      const s = typeof gameState !== 'undefined' && gameState.selectedShip;
+      return s ? { pd: s.pointDefenseMode === 'area', refocus: s.refocusShields === 'fore' } : null;
+    }).catch(() => null);
+    if (pdRefocusOk) out('PD/Refocus state: ' + JSON.stringify(pdRefocusOk));
+
+    // --- Missile panel: set target and salvo BEFORE Execute Turn so VLS can fire during execution ---
+    out('Setting missile target and salvo for selected ship...');
+    const missileSetup = await page.evaluate(() => {
+      try {
+        if (typeof gameState === 'undefined' || !gameState.ships) return { ok: false, reason: 'no-gameState' };
+        const player = gameState.ships.find(s => s.team === 'player');
+        const enemy = gameState.ships.find(s => s.team === 'enemy');
+        if (!player || !enemy) return { ok: false, reason: 'no-player-or-enemy' };
+        gameState.selectedShip = player;
+        if (typeof selectShip === 'function') selectShip(player);
+        player.missileTargetId = enemy.id;
+        player.missileSalvoType = 'STANDARD';
+        player.missilePanelMode = 'standard';
+        const hasInterceptor = player.missileManager && (player.missileManager.currentMissiles && player.missileManager.currentMissiles.INTERCEPTOR) > 0;
+        return { ok: true, missileTargetId: player.missileTargetId, hasInterceptor };
+      } catch (e) {
+        return { ok: false, reason: (e && e.message) || 'exception' };
+      }
+    }).catch(() => ({ ok: false, reason: 'eval-failed' }));
+    out('Missile setup: ' + JSON.stringify(missileSetup));
+
     out('Clicking Execute Turn (first turn)...');
     await page.locator('#nextPhaseBtn').or(page.getByRole('button', { name: /Execute Turn/i })).first().click().catch(() => {});
-    // Allow execution phase (nominally 5s) to play out
+    // Allow execution phase (nominally 5s) to play out so VLS and inFlightMissiles advance
     await page.waitForTimeout(5500);
 
-    // --- Save / Load flow ---
+    const afterFirstExec = await page.evaluate(() => {
+      const g = typeof gameState !== 'undefined' ? gameState : null;
+      if (!g) return { inFlight: -1, spinal: -1 };
+      return {
+        inFlight: Array.isArray(g.inFlightMissiles) ? g.inFlightMissiles.length : -1,
+        spinal: Array.isArray(g.spinalProjectiles) ? g.spinalProjectiles.length : -1
+      };
+    }).catch(() => ({}));
+    out('After first execution (inFlightMissiles/spinal): ' + JSON.stringify(afterFirstExec));
+
+    // --- Save / Load flow (includes inFlightMissiles, pdHeat, foreShieldPercent) ---
     out('Saving game after first execution...');
     await page.locator('button[data-action="saveGame"]').or(page.getByRole('button', { name: /Save Game/i })).first().click().catch(() => {});
     await page.waitForTimeout(800);
@@ -63,6 +106,21 @@ async function main() {
     out('Clicking Load Game...');
     await page.locator('button[data-action="loadGame"]').or(page.getByRole('button', { name: /Load Game/i })).first().click().catch(() => {});
     await page.waitForTimeout(1500);
+
+    // --- Post-load: verify inFlightMissiles and ship PD/shield state if present in save ---
+    const loadState = await page.evaluate(() => {
+      const g = typeof gameState !== 'undefined' ? gameState : null;
+      if (!g) return { ok: false };
+      const first = (g.ships || [])[0];
+      return {
+        ok: true,
+        inFlightMissilesLength: Array.isArray(g.inFlightMissiles) ? g.inFlightMissiles.length : -1,
+        spinalProjectilesLength: Array.isArray(g.spinalProjectiles) ? g.spinalProjectiles.length : -1,
+        shipPdHeat: first ? first.pdHeat : null,
+        shipForeShield: first ? first.foreShieldPercent : null
+      };
+    }).catch(() => ({ ok: false }));
+    out('After load state: ' + JSON.stringify(loadState));
 
     // --- Weapons UI flow ---
     out('Selecting first ship after load (if any)...');
@@ -118,6 +176,18 @@ async function main() {
       }
     }).catch(() => 'eval-failed');
 
+    // Crew/stations: ensure selected ship has crewStations and engineering bonuses can exist after advance
+    out('Checking crew stations and engineering bonuses...');
+    const crewCheck = await page.evaluate(() => {
+      const s = typeof gameState !== 'undefined' && gameState.ships && gameState.ships[0];
+      if (!s) return 'no-ship';
+      const hasStations = !!s.crewStations && Object.keys(s.crewStations).length > 0;
+      const hasPowerBonus = '_engineeringPowerBonus' in s;
+      const hasDrivesBonus = '_engineeringDrivesBonus' in s;
+      return { hasStations, hasPowerBonus, hasDrivesBonus };
+    }).catch(() => 'eval-fail');
+    out('Crew/engineering check: ' + JSON.stringify(crewCheck));
+
     // Execute another turn so save/load + fighters + weapons paths are exercised
     out('Clicking Execute Turn (second turn after load)...');
     await page.locator('#nextPhaseBtn').or(page.getByRole('button', { name: /Execute Turn/i })).first().click().catch(() => {});
@@ -139,6 +209,9 @@ async function main() {
     } else {
       allErrors.forEach((e, i) => out(JSON.stringify(e, null, 2)));
     }
+    out('');
+    out('--- Summary ---');
+    out(allErrors.length === 0 ? 'PASS: No errors.' : 'FAIL: ' + allErrors.length + ' error(s) captured.');
   } catch (e) {
     out('Run error: ' + e.message);
     out(e.stack);

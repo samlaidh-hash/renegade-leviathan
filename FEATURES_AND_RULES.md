@@ -1,9 +1,11 @@
 # Renegade Legion: Leviathan
 ## Detailed Features and Rules Summary
 
+> **Canonical turn structure for this build:** The game uses the **dual-phase** model from **GameDesign.md** (Planning → 5s Execution, then Replay or Advance). This document's §1 (6-phase system) is legacy/reference; the implementation follows GameDesign.
+
 ---
 
-## 1. Turn Structure (6-Phase System)
+## 1. Turn Structure (6-Phase System — legacy reference)
 
 Each turn is divided into six phases, executed in order:
 
